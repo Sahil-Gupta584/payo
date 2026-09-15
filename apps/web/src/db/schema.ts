@@ -84,7 +84,7 @@ export const verification = pgTable(
 export const wallet = pgTable("wallet", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull().unique().references(() => user.id, { onDelete: "cascade" }),
-  balancePaise: integer("balance_paise").notNull().default(0),
+  balance: integer("balance").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()).notNull(),
 });
@@ -109,7 +109,7 @@ export const order = pgTable(
     platform: platformEnum("platform").notNull(),
     productId: text("product_id").notNull(),
     productName: text("product_name").notNull(),
-    amountPaise: integer("amount_paise").notNull(),
+    amount: integer("amount").notNull(),
     status: orderStatusEnum("status").notNull().default("pending"),
     solariSessionId: text("solari_session_id"),
     otpPageUrl: text("otp_page_url"),

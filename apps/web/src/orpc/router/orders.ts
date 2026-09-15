@@ -36,13 +36,12 @@ export const initiateOrder = authed
     platform: z.enum(['flipkart', 'instamart']),
     productId: z.string(),
     productName: z.string(),
-    amountPaise: z.number().int().positive(),
+    amount: z.number().int().positive(),
   }))
   .handler(async ({ input, context }) => {
-    // Check wallet balance
     const userWallet = await db.query.wallet.findFirst({ where: eq(wallet.userId, context.user.id) })
-    if (!userWallet || userWallet.balancePaise < input.amountPaise) {
-      throw new Error(`Insufficient balance. Have ₹${((userWallet?.balancePaise ?? 0) / 100).toFixed(2)}, need ₹${(input.amountPaise / 100).toFixed(2)}`)
+    if (!userWallet || userWallet.balance < input.amount) {
+      throw new Error(`Insufficient balance. Have $${((userWallet?.balance ?? 0) / 100).toFixed(2)}, need $${(input.amount / 100).toFixed(2)}`)
     }
 
     const orderId = crypto.randomUUID()
@@ -59,7 +58,7 @@ export const initiateOrder = authed
       platform: input.platform,
       productId: input.productId,
       productName: input.productName,
-      amountPaise: input.amountPaise,
+      amount: input.amount,
       status: 'pending',
     }).returning()
 

@@ -15,7 +15,7 @@ function Dashboard() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Wallet balance" value="₹0.00" />
+        <StatCard label="Wallet balance" value="$0.00" />
         <StatCard label="Orders placed" value="0" />
         <StatCard label="API key" value="Not generated" />
       </div>

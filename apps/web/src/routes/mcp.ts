@@ -46,8 +46,8 @@ server.registerTool(
       id: p.id,
       name: p.name,
       brand: p.brand,
-      price: `₹${p.offer_price}`,
-      mrp: `₹${p.mrp}`,
+      price: `$${p.offer_price}`,
+      mrp: `$${p.mrp}`,
       quantity: p.quantity,
       available: p.available,
     }))
@@ -66,7 +66,7 @@ server.registerTool(
     const user = await resolveUser((extra as any)._meta?.request as Request ?? (extra as any).meta?.request as Request)
     if (!user) return { content: [{ type: 'text', text: 'Error: unauthorized' }], isError: true }
     const row = await db.query.wallet.findFirst({ where: eq(wallet.userId, user.id) })
-    return { content: [{ type: 'text', text: `Wallet balance: ₹${((row?.balancePaise ?? 0) / 100).toFixed(2)}` }] }
+    return { content: [{ type: 'text', text: `Wallet balance: $${((row?.balance ?? 0) / 100).toFixed(2)}` }] }
   },
 )
 
@@ -79,22 +79,22 @@ server.registerTool(
       platform: z.enum(['flipkart', 'instamart']),
       product_id: z.string().describe('id from search_products'),
       product_name: z.string(),
-      amount_paise: z.number().int().positive().describe('price in paise (₹1 = 100 paise)'),
+      amount: z.number().int().positive().describe('price in cents ($1 = 100)'),
     },
   },
-  async ({ platform, product_id, product_name, amount_paise }, extra) => {
+  async ({ platform, product_id, product_name, amount }, extra) => {
     const user = await resolveUser((extra as any)._meta?.request as Request ?? (extra as any).meta?.request as Request)
     if (!user) return { content: [{ type: 'text', text: 'Error: unauthorized' }], isError: true }
 
     const userWallet = await db.query.wallet.findFirst({ where: eq(wallet.userId, user.id) })
-    if (!userWallet || userWallet.balancePaise < amount_paise) {
-      return { content: [{ type: 'text', text: `Insufficient balance. Have ₹${((userWallet?.balancePaise ?? 0) / 100).toFixed(2)}, need ₹${(amount_paise / 100).toFixed(2)}` }], isError: true }
+    if (!userWallet || userWallet.balance < amount) {
+      return { content: [{ type: 'text', text: `Insufficient balance. Have $${((userWallet?.balance ?? 0) / 100).toFixed(2)}, need $${(amount / 100).toFixed(2)}` }], isError: true }
     }
 
     const orderId = crypto.randomUUID()
     const card = { number: env.PLATFORM_CARD_NUMBER, expiry: env.PLATFORM_CARD_EXPIRY, cvv: env.PLATFORM_CARD_CVV }
 
-    await db.insert(order).values({ id: orderId, userId: user.id, platform, productId: product_id, productName: product_name, amountPaise: amount_paise, status: 'pending' })
+    await db.insert(order).values({ id: orderId, userId: user.id, platform, productId: product_id, productName: product_name, amount, status: 'pending' })
 
     if (platform === 'flipkart') {
       const result = await flipkartCheckout(product_id, card)
