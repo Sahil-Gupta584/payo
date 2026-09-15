@@ -1,0 +1,13 @@
+{
+  "mcp": {
+    "servers": {
+      "payi": {
+        "type": "remote",
+        "url": "http://localhost:3000/mcp",
+        "headers": {
+          "Authorization": "Bearer payi_d4ace14d8286ce694d7abfe4aaadc74cee8e21c670bd2c7e"
+        }
+      }
+    }
+  }
+}

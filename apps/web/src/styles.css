@@ -1,0 +1,226 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* Apple HIG — semantic roles, not raw hex.
+   Light = systemBackground / label / secondaryLabel.
+   Dark adapts automatically. Single accent: systemBlue. */
+
+:root {
+  /* System roles */
+  --system-blue: #007AFF;
+  --system-green: #34C759;
+  --system-red: #FF3B30;
+  --label: #000000;
+  --secondary-label: rgba(60, 60, 67, 0.6);
+  --tertiary-label: rgba(60, 60, 67, 0.3);
+  --system-background: #FFFFFF;
+  --secondary-system-background: #F2F2F7;
+  --tertiary-system-background: #FFFFFF;
+  --system-gray: #8E8E93;
+  --system-gray2: #AEAEB2;
+  --system-gray3: #C7C7CC;
+  --system-gray4: #D1D1D6;
+  --system-gray5: #E5E5EA;
+  --system-gray6: #F2F2F7;
+  --separator: rgba(60, 60, 67, 0.12);
+  --separator-opaque: #C6C6C8;
+
+  /* App semantic tokens (mapped to Tailwind) */
+  --background: var(--system-background);
+  --foreground: var(--label);
+  --card: var(--system-background);
+  --card-foreground: var(--label);
+  --popover: var(--system-background);
+  --popover-foreground: var(--label);
+  --primary: var(--system-blue);
+  --primary-foreground: #FFFFFF;
+  --secondary: var(--system-gray6);
+  --secondary-foreground: var(--label);
+  --muted: var(--system-gray6);
+  --muted-foreground: var(--secondary-label);
+  --accent: var(--system-gray6);
+  --accent-foreground: var(--label);
+  --destructive: var(--system-red);
+  --destructive-foreground: #FFFFFF;
+  --border: var(--separator);
+  --input: var(--separator);
+  --ring: var(--system-blue);
+
+  --chart-1: var(--system-blue);
+  --chart-2: var(--system-green);
+  --chart-3: #FF9500;
+  --chart-4: #AF52DE;
+  --chart-5: #FF2D55;
+
+  --radius: 0.75rem;
+
+  --sidebar: var(--secondary-system-background);
+  --sidebar-foreground: var(--label);
+  --sidebar-primary: var(--system-blue);
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: var(--system-gray6);
+  --sidebar-accent-foreground: var(--label);
+  --sidebar-border: var(--separator);
+  --sidebar-ring: var(--system-blue);
+}
+
+.dark {
+  --label: #FFFFFF;
+  --secondary-label: rgba(235, 235, 245, 0.6);
+  --tertiary-label: rgba(235, 235, 245, 0.3);
+  --system-background: #000000;
+  --secondary-system-background: #1C1C1E;
+  --tertiary-system-background: #2C2C2E;
+  --system-gray: #8E8E93;
+  --system-gray2: #636366;
+  --system-gray3: #48484A;
+  --system-gray4: #3A3A3C;
+  --system-gray5: #2C2C2E;
+  --system-gray6: #1C1C1E;
+  --separator: rgba(84, 84, 88, 0.36);
+  --separator-opaque: #38383A;
+
+  --background: var(--system-background);
+  --foreground: var(--label);
+  --card: var(--secondary-system-background);
+  --card-foreground: var(--label);
+  --popover: var(--secondary-system-background);
+  --popover-foreground: var(--label);
+  --primary: var(--system-blue);
+  --primary-foreground: #FFFFFF;
+  --secondary: var(--system-gray5);
+  --secondary-foreground: var(--label);
+  --muted: var(--system-gray5);
+  --muted-foreground: var(--secondary-label);
+  --accent: var(--system-gray5);
+  --accent-foreground: var(--label);
+  --destructive: var(--system-red);
+  --destructive-foreground: #FFFFFF;
+  --border: var(--separator);
+  --input: var(--separator);
+  --ring: var(--system-blue);
+
+  --sidebar: var(--secondary-system-background);
+  --sidebar-foreground: var(--label);
+  --sidebar-primary: var(--system-blue);
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: var(--system-gray5);
+  --sidebar-accent-foreground: var(--label);
+  --sidebar-border: var(--separator);
+  --sidebar-ring: var(--system-blue);
+}
+
+@theme inline {
+  --font-sans: 'SF Pro', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'SF Mono', ui-monospace, SFMono-Regular, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  background: var(--background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Links — systemBlue only */
+a {
+  color: var(--primary);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  opacity: 0.8;
+}
+
+/* Code — subtle systemGray6 surface */
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  border: 1px solid var(--border);
+  background: var(--secondary);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+
+pre code {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+  color: inherit;
+}
+
+.prose pre {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--secondary-system-background);
+}
+
+/* Liquid Glass — single translucent surface */
+.island-shell {
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card) 72%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--foreground) 4%, transparent) inset;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+}
