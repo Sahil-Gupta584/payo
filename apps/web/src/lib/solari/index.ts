@@ -8,10 +8,20 @@ export async function launchBrowser(profileId: string) {
   return { client, browser, sessionId: browser.id }
 }
 
-export async function step(label: string, page: Page, fn: () => Promise<void>): Promise<void> {
+export async function createPersistentSession(profileId: string) {
+  const client = new Solari({ apiKey: env.SOLARI_API_KEY, baseUrl: 'https://api.getsolari.com' })
+  const session = await client.sessions.create({ stealth: true, captcha: true, recording: true, profileId })
+  const { chromium } = await import('patchright-core')
+  // Use cdpEndpoint + connectOverCDP to preserve profile-seeded context (wsEndpoint creates empty context)
+  const browser = await chromium.connectOverCDP(session.cdpEndpoint)
+  return { client, session, browser }
+}
+
+export async function step<T = void>(label: string, page: Page, fn: () => Promise<T>): Promise<T> {
   try {
-    await fn()
+    const result = await fn()
     console.log(`[OK] ${label} — ${page.url().slice(0, 80)}`)
+    return result
   } catch (err: any) {
     const url = (() => { try { return page.url() } catch { return 'unknown' } })()
     const text = await page.evaluate(() => document.body?.innerText?.slice(0, 400)).catch(() => '')

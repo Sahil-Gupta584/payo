@@ -5,16 +5,16 @@ import { order, wallet } from '#/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import { searchProducts } from '#/lib/quickcommerce'
 import { flipkartCheckout } from '#/lib/solari/flipkart'
-import { instamartAddToCart } from '#/lib/solari/instamart'
+import { instamartCheckout } from '#/lib/solari/instamart'
+import { submitSbiOtp } from '#/lib/solari/sbi-otp'
+import { env } from '#/env'
 
 export const searchShop = authed
   .input(z.object({
     query: z.string().min(1),
-    platform: z.enum(['flipkart', 'instamart']),
   }))
   .handler(async ({ input }) => {
-    const qcPlatform = input.platform === 'instamart' ? 'Swiggy' : 'Flipkart'
-    const { products, creditsRemaining } = await searchProducts(input.query, qcPlatform)
+    const { products, creditsRemaining } = await searchProducts(input.query)
     return {
       products: products.slice(0, 5).map((p: any) => ({
         id: p.id as string,
@@ -46,9 +46,9 @@ export const initiateOrder = authed
 
     const orderId = crypto.randomUUID()
     const platformCard = {
-      number: process.env.PLATFORM_CARD_NUMBER!,
-      expiry: process.env.PLATFORM_CARD_EXPIRY!,
-      cvv: process.env.PLATFORM_CARD_CVV!,
+      number: env.PLATFORM_CARD_NUMBER,
+      expiry: env.PLATFORM_CARD_EXPIRY,
+      cvv: env.PLATFORM_CARD_CVV,
     }
 
     // Create order as pending
@@ -78,11 +78,16 @@ export const initiateOrder = authed
     }
 
     if (input.platform === 'instamart') {
-      const result = await instamartAddToCart(input.productId)
+      const card = { number: env.PLATFORM_CARD_NUMBER, expiry: env.PLATFORM_CARD_EXPIRY, cvv: env.PLATFORM_CARD_CVV }
+      const result = await instamartCheckout(input.productId, card, input.amount / 100)
       const [updated] = await db.update(order)
         .set({
           status: result.success ? 'awaiting_otp' : 'failed',
           solariSessionId: result.sessionId,
+          sbiTransactionId: result.sbiFields?.transactionIdentifier,
+          sbiNonce: result.sbiFields?.nonce,
+          sbiTimestamp: result.sbiFields?.timestamp,
+          sbiSignature: result.sbiFields?.signature,
           errorMessage: result.error,
         })
         .where(eq(order.id, orderId))
@@ -100,3 +105,39 @@ export const listOrders = authed.handler(async ({ context }) => {
     limit: 20,
   })
 })
+
+export const confirmOrder = authed
+  .input(z.object({
+    orderId: z.string(),
+    otp: z.string().regex(/^\d{6}$/, 'OTP must be exactly 6 digits'),
+  }))
+  .handler(async ({ input, context }) => {
+    const existing = await db.query.order.findFirst({ where: eq(order.id, input.orderId) })
+    if (!existing) throw new Error('Order not found')
+    if (existing.userId !== context.user.id) throw new Error('Unauthorized')
+    if (existing.status !== 'awaiting_otp') throw new Error(`Order is not awaiting OTP — status: ${existing.status}`)
+    if (!existing.otpPageUrl) throw new Error('No OTP page URL stored for this order')
+
+    const profileId = existing.platform === 'flipkart' ? env.FLIPKART_PROFILE_ID : env.INSTAMART_PROFILE_ID
+    const result = await submitSbiOtp(existing.otpPageUrl, input.otp, profileId)
+
+    if (!result.success) {
+      await db.update(order).set({ status: 'failed', errorMessage: result.error }).where(eq(order.id, input.orderId))
+      throw new Error(`OTP failed: ${result.error}`)
+    }
+
+    // debit wallet
+    const userWallet = await db.query.wallet.findFirst({ where: eq(wallet.userId, context.user.id) })
+    if (userWallet) {
+      await db.update(wallet)
+        .set({ balance: Math.max(0, userWallet.balance - existing.amount) })
+        .where(eq(wallet.userId, context.user.id))
+    }
+
+    const [confirmed] = await db.update(order)
+      .set({ status: 'confirmed' })
+      .where(eq(order.id, input.orderId))
+      .returning()
+
+    return confirmed
+  })
