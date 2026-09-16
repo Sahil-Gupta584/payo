@@ -1,6 +1,5 @@
 import { addTodo, listTodos } from './todos'
-import { getWalletBalance, topupWallet } from './wallet'
-import { searchShop, initiateOrder, listOrders, confirmOrder } from './orders'
+import { getWalletBalance, topupWallet, createWalletCheckout } from './wallet'
 import { checkInvite } from './invite'
 import { listApiKeys, createApiKey, revokeApiKey } from './apiKeys'
 
@@ -11,12 +10,7 @@ export default {
   wallet: {
     getBalance: getWalletBalance,
     topup: topupWallet,
-  },
-  shop: {
-    search: searchShop,
-    initiateOrder,
-    listOrders,
-    confirmOrder,
+    createCheckout: createWalletCheckout,
   },
   apiKeys: { list: listApiKeys, create: createApiKey, revoke: revokeApiKey },
 }

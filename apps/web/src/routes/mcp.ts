@@ -4,8 +4,8 @@ import { z } from 'zod'
 import { handleMcpRequest } from '#/utils/mcp-handler'
 import { auth } from '#/lib/auth'
 import { db } from '#/db'
-import { apiKey, wallet, order } from '#/db/schema'
-import { eq } from 'drizzle-orm'
+import { apiKey, user as userTable, order, orderHistory, orderPaymentSession, walletHistory } from '#/db/schema'
+import { eq, desc } from 'drizzle-orm'
 import { createHash } from 'node:crypto'
 import { instamartCheckout } from '#/lib/solari/instamart'
 import { searchProducts } from '#/lib/quickcommerce'
@@ -68,7 +68,7 @@ function createServer(user: ResolvedUser) {
     },
     async () => {
       if (!user) return unauthed
-      const row = await db.query.wallet.findFirst({ where: eq(wallet.userId, user.id) })
+      const row = await db.query.user.findFirst({ where: eq(userTable.id, user.id) })
       return { content: [{ type: 'text' as const, text: `Wallet balance: $${((row?.balance ?? 0) / 100).toFixed(2)}` }] }
     },
   )
@@ -87,9 +87,10 @@ function createServer(user: ResolvedUser) {
     async ({ product_id, product_name, amount }) => {
       if (!user) return unauthed
 
-      const userWallet = await db.query.wallet.findFirst({ where: eq(wallet.userId, user.id) })
-      if (!userWallet || userWallet.balance < amount) {
-        return { content: [{ type: 'text' as const, text: `Insufficient balance. Have $${((userWallet?.balance ?? 0) / 100).toFixed(2)}, need $${(amount / 100).toFixed(2)}` }], isError: true }
+      const freshUser = await db.query.user.findFirst({ where: eq(userTable.id, user.id) })
+      const balance = freshUser?.balance ?? 0
+      if (balance < amount) {
+        return { content: [{ type: 'text' as const, text: `Insufficient balance. Have $${(balance / 100).toFixed(2)}, need $${(amount / 100).toFixed(2)}` }], isError: true }
       }
 
       const orderId = crypto.randomUUID()
@@ -100,13 +101,28 @@ function createServer(user: ResolvedUser) {
       const result = await instamartCheckout(product_id, card, amountInr)
       await db.update(order).set({
         status: result.success ? 'awaiting_otp' : 'failed',
-        solariSessionId: result.sessionId,
-        sbiTransactionId: result.sbiFields?.transactionIdentifier,
-        sbiNonce: result.sbiFields?.nonce,
-        sbiTimestamp: result.sbiFields?.timestamp,
-        sbiSignature: result.sbiFields?.signature,
         errorMessage: result.error,
       }).where(eq(order.id, orderId))
+      if (result.success && result.sbiFields) {
+        await db.insert(orderPaymentSession).values({
+          orderId,
+          sbiTransactionId: result.sbiFields.transactionIdentifier,
+          sbiNonce: result.sbiFields.nonce,
+          sbiTimestamp: result.sbiFields.timestamp,
+          sbiSignature: result.sbiFields.signature,
+          expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+        })
+        // mirror to order_history for clean history (no temp fields) — use same id as order
+        await db.insert(orderHistory).values({
+          id: orderId as any,
+          userId: user.id,
+          platform: 'instamart',
+          productId: product_id,
+          productName: product_name,
+          amount,
+          status: 'awaiting_otp',
+        })
+      }
       if (!result.success) return { content: [{ type: 'text' as const, text: `Order failed: ${result.error}` }], isError: true }
       return { content: [{ type: 'text' as const, text: `Order initiated — OTP sent to your mobile number.\n\nOrder ID: ${orderId}\nProduct: ${product_name} ($${(amount / 100).toFixed(2)})\n\nTo complete the booking, please share the 6-digit OTP and I will confirm the order via confirm_order.` }] }
     },
@@ -116,13 +132,25 @@ function createServer(user: ResolvedUser) {
     'list_orders',
     {
       title: 'List orders',
-      description: 'List recent orders for the authenticated user.',
-      inputSchema: {},
+      description: 'List recent orders for the authenticated user. Use query to filter by product name for reorder (e.g. "coke", "peanut butter"). Returns productId/productName/amount needed for initiate_order.',
+      inputSchema: {
+        query: z.string().optional().describe('Filter by product name (e.g. "coke" to find last coke order for reorder)'),
+        limit: z.number().int().min(1).max(20).default(10).describe('Number of orders to return (default 10)'),
+      },
     },
-    async () => {
+    async ({ query, limit }) => {
       if (!user) return unauthed
-      const orders = await db.query.order.findMany({ where: eq(order.userId, user.id), limit: 10 })
-      return { content: [{ type: 'text' as const, text: JSON.stringify(orders, null, 2) }] }
+      const effectiveLimit = limit ?? 10
+      // prefer orderHistory (clean history), fallback to order
+      const rows = query
+        ? await db.query.orderHistory.findMany({
+            where: (o, { and, eq: e, ilike }) => and(e(o.userId, user.id), ilike(o.productName, `%${query}%`)),
+            orderBy: desc(orderHistory.createdAt),
+            limit: effectiveLimit,
+          })
+        : await db.query.orderHistory.findMany({ where: eq(orderHistory.userId, user.id), orderBy: desc(orderHistory.createdAt), limit: effectiveLimit })
+      const compact = rows.map((r: any) => ({ id: r.id, productId: r.productId, productName: r.productName, amount: `$${(r.amount / 100).toFixed(2)}`, amountCents: r.amount, status: r.status, createdAt: r.createdAt }))
+      return { content: [{ type: 'text' as const, text: JSON.stringify(compact, null, 2) }] }
     },
   )
 
@@ -142,16 +170,19 @@ function createServer(user: ResolvedUser) {
       const existing = await db.query.order.findFirst({ where: eq(order.id, order_id) })
       if (!existing || existing.userId !== user.id) return { content: [{ type: 'text' as const, text: 'Error: order not found' }], isError: true }
       if (existing.status !== 'awaiting_otp') return { content: [{ type: 'text' as const, text: `Error: order status is '${existing.status}', not awaiting_otp` }], isError: true }
-      if (!existing.sbiTransactionId || !existing.sbiNonce || !existing.sbiTimestamp || !existing.sbiSignature) {
-        return { content: [{ type: 'text' as const, text: 'Error: SBI payment fields not found for this order' }], isError: true }
+      const session = await db.query.orderPaymentSession.findFirst({ where: eq(orderPaymentSession.orderId, order_id) })
+      if (!session) return { content: [{ type: 'text' as const, text: 'Error: OTP session expired or not found' }], isError: true }
+      if (new Date(session.expiresAt) < new Date()) {
+        await db.delete(orderPaymentSession).where(eq(orderPaymentSession.orderId, order_id))
+        return { content: [{ type: 'text' as const, text: 'Error: OTP session expired (10m). Please re-initiate order.' }], isError: true }
       }
 
       const { submitOtpDirect } = await import('#/lib/solari/sbi-otp.js')
       const result = await submitOtpDirect({
-        transactionIdentifier: existing.sbiTransactionId,
-        nonce: existing.sbiNonce,
-        timestamp: existing.sbiTimestamp,
-        signature: existing.sbiSignature,
+        transactionIdentifier: session.sbiTransactionId,
+        nonce: session.sbiNonce,
+        timestamp: session.sbiTimestamp,
+        signature: session.sbiSignature,
       }, otp)
 
       if (!result.success) {
@@ -159,11 +190,14 @@ function createServer(user: ResolvedUser) {
         return { content: [{ type: 'text' as const, text: `Payment failed: ${result.error}` }], isError: true }
       }
 
-      const userWallet = await db.query.wallet.findFirst({ where: eq(wallet.userId, user.id) })
-      if (userWallet) {
-        await db.update(wallet).set({ balance: Math.max(0, userWallet.balance - existing.amount) }).where(eq(wallet.userId, user.id))
-      }
+      const freshUser2 = await db.query.user.findFirst({ where: eq(userTable.id, user.id) })
+      const currentBalance = freshUser2?.balance ?? 0
+      const newBalance = Math.max(0, currentBalance - existing.amount)
+      await db.update(userTable).set({ balance: newBalance }).where(eq(userTable.id, user.id))
+      await db.insert(walletHistory).values({ userId: user.id, amount: existing.amount, type: 'debit', description: `Order ${existing.productName}`, balanceAfter: newBalance, referenceId: order_id })
       await db.update(order).set({ status: 'confirmed' }).where(eq(order.id, order_id))
+      await db.update(orderHistory).set({ status: 'confirmed' }).where(eq(orderHistory.id, order_id))
+      await db.delete(orderPaymentSession).where(eq(orderPaymentSession.orderId, order_id))
 
       return { content: [{ type: 'text' as const, text: `✅ Order confirmed!\n\nOrder ID: ${order_id}\nAmount: $${(existing.amount / 100).toFixed(2)} debited from wallet.` }] }
     },

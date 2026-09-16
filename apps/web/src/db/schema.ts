@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp, boolean, index, serial, integer, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, index, serial, integer, pgEnum, uuid } from "drizzle-orm/pg-core";
 
 export const todos = pgTable('todos', {
   id: serial().primaryKey(),
@@ -13,6 +13,7 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
   image: text("image"),
+  balance: integer("balance").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
@@ -79,17 +80,30 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
-// ── Wallet ────────────────────────────────────────────────────────────────────
+// ── Wallet (legacy, balance moved to user.balance) ───────────────────────────
 
 export const wallet = pgTable("wallet", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull().unique().references(() => user.id, { onDelete: "cascade" }),
-  balance: integer("balance").notNull().default(0),
+  balance: integer("balance").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()).notNull(),
 });
 
-// ── Orders ────────────────────────────────────────────────────────────────────
+export const walletTransactionTypeEnum = pgEnum("wallet_transaction_type", ["credit", "debit"])
+
+export const walletHistory = pgTable("wallet_history", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  amount: integer("amount").notNull(),
+  type: walletTransactionTypeEnum("type").notNull(),
+  description: text("description"),
+  balanceAfter: integer("balance_after"),
+  referenceId: text("reference_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [index("wallet_history_userId_idx").on(table.userId)]);
+
+// ── Orders (history only — no temp OTP fields) ───────────────────────────────
 
 export const orderStatusEnum = pgEnum("order_status", [
   "pending",
@@ -111,19 +125,35 @@ export const order = pgTable(
     productName: text("product_name").notNull(),
     amount: integer("amount").notNull(),
     status: orderStatusEnum("status").notNull().default("pending"),
-    solariSessionId: text("solari_session_id"),
-    solariWsEndpoint: text("solari_ws_endpoint"),
-    otpPageUrl: text("otp_page_url"),
-    sbiTransactionId: text("sbi_transaction_id"),
-    sbiNonce: text("sbi_nonce"),
-    sbiTimestamp: text("sbi_timestamp"),
-    sbiSignature: text("sbi_signature"),
     errorMessage: text("error_message"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()).notNull(),
   },
   (table) => [index("order_userId_idx").on(table.userId)],
 );
+
+export const orderHistory = pgTable("order_history", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  platform: platformEnum("platform").notNull(),
+  productId: text("product_id").notNull(),
+  productName: text("product_name").notNull(),
+  amount: integer("amount").notNull(),
+  status: orderStatusEnum("status").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [index("order_history_userId_idx").on(table.userId)]);
+
+// Temp OTP session — one-time fields for confirm_order, TTL 10m
+export const orderPaymentSession = pgTable("order_payment_session", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orderId: text("order_id").notNull().unique().references(() => order.id, { onDelete: "cascade" }),
+  sbiTransactionId: text("sbi_transaction_id").notNull(),
+  sbiNonce: text("sbi_nonce").notNull(),
+  sbiTimestamp: text("sbi_timestamp").notNull(),
+  sbiSignature: text("sbi_signature").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+}, (table) => [index("order_payment_session_orderId_idx").on(table.orderId)]);
 
 // ── API Keys (for MCP auth) ───────────────────────────────────────────────────
 
@@ -146,7 +176,9 @@ export const userRelations = relations(user, ({ many, one }) => ({
   sessions: many(session),
   accounts: many(account),
   orders: many(order),
+  orderHistory: many(orderHistory),
   wallet: one(wallet),
+  walletHistory: many(walletHistory),
   apiKeys: many(apiKey),
 }));
 
@@ -162,8 +194,20 @@ export const walletRelations = relations(wallet, ({ one }) => ({
   user: one(user, { fields: [wallet.userId], references: [user.id] }),
 }));
 
+export const walletHistoryRelations = relations(walletHistory, ({ one }) => ({
+  user: one(user, { fields: [walletHistory.userId], references: [user.id] }),
+}));
+
 export const orderRelations = relations(order, ({ one }) => ({
   user: one(user, { fields: [order.userId], references: [user.id] }),
+}));
+
+export const orderHistoryRelations = relations(orderHistory, ({ one }) => ({
+  user: one(user, { fields: [orderHistory.userId], references: [user.id] }),
+}));
+
+export const orderPaymentSessionRelations = relations(orderPaymentSession, ({ one }) => ({
+  order: one(order, { fields: [orderPaymentSession.orderId], references: [order.id] }),
 }));
 
 export const apiKeyRelations = relations(apiKey, ({ one }) => ({
@@ -182,7 +226,10 @@ export type Invite = typeof invite.$inferSelect
 
 export type User = typeof user.$inferSelect
 export type Wallet = typeof wallet.$inferSelect
+export type WalletHistory = typeof walletHistory.$inferSelect
 export type Order = typeof order.$inferSelect
+export type OrderHistory = typeof orderHistory.$inferSelect
+export type OrderPaymentSession = typeof orderPaymentSession.$inferSelect
 export type ApiKey = typeof apiKey.$inferSelect
 export type NewOrder = typeof order.$inferInsert
 export type OrderStatus = Order["status"]
