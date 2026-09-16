@@ -51,7 +51,7 @@ function LoginPage() {
           <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-lg shadow">
             $
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Payi</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Payo</h1>
           <p className="mt-1 text-sm text-muted-foreground">Let your AI agent shop for you</p>
         </div>
 

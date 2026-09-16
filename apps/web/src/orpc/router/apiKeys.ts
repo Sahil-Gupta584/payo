@@ -16,7 +16,7 @@ export const listApiKeys = authed.handler(async ({ context }) => {
 export const createApiKey = authed
   .input(z.object({ name: z.string().min(1).max(30).default('default') }))
   .handler(async ({ input, context }) => {
-    const raw = `payi_${randomBytes(24).toString('hex')}`
+    const raw = `payo_${randomBytes(24).toString('hex')}`
     const hash = createHash('sha256').update(raw).digest('hex')
     const [row] = await db
       .insert(apiKey)

@@ -34,8 +34,8 @@ export const auth = betterAuth({
         await resend.emails.send({
           from: 'auth@chatcash.live',
           to: email,
-          subject: 'Your Payi login link',
-          html: `<p>Click below to sign in to Payi:</p><a href="${url}">${url}</a>`,
+          subject: 'Your Payo login link',
+          html: `<p>Click below to sign in to Payo:</p><a href="${url}">${url}</a>`,
         })
       },
     }),

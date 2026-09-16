@@ -28,7 +28,7 @@ async function resolveUser(request: Request) {
 }
 
 function createServer(user: ResolvedUser) {
-  const server = new McpServer({ name: 'payi', version: '0.1.0' })
+  const server = new McpServer({ name: 'payo', version: '0.1.0' })
 
   const unauthed = { content: [{ type: 'text' as const, text: 'Error: unauthorized' }], isError: true as const }
 

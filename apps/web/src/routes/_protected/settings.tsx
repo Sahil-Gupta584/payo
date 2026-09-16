@@ -33,7 +33,7 @@ function SettingsPage() {
   )
 
   const copyOpencode = (key: string) => {
-    const snippet = `opencode mcp add payi --url ${window.location.origin}/mcp --header "Authorization=Bearer ${key}"`
+    const snippet = `opencode mcp add payo --url ${window.location.origin}/mcp --header "Authorization=Bearer ${key}"`
     navigator.clipboard.writeText(snippet)
     setCopied(key)
     setTimeout(() => setCopied(null), 2000)
@@ -43,7 +43,7 @@ function SettingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-bold">Settings</h1>
-        <p className="mt-1 text-sm text-zinc-400">Manage your API keys for the Payi MCP.</p>
+        <p className="mt-1 text-sm text-zinc-400">Manage your API keys for the Payo MCP.</p>
       </div>
 
       <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
@@ -119,7 +119,7 @@ function SettingsPage() {
         <div className="mt-6 rounded-lg bg-black p-3">
           <p className="text-xs font-medium text-zinc-400">OpenCode config example</p>
           <pre className="mt-1 overflow-x-auto text-xs text-zinc-500">
-            {`opencode mcp add payi --url ${typeof window !== 'undefined' ? window.location.origin : 'https://payi.so'}/mcp \\\n  --header "Authorization=Bearer YOUR_KEY"`}
+            {`opencode mcp add payo --url ${typeof window !== 'undefined' ? window.location.origin : 'https://payo.so'}/mcp \\\n  --header "Authorization=Bearer YOUR_KEY"`}
           </pre>
         </div>
       </div>

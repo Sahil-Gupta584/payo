@@ -1,8 +1,8 @@
-# AGENTS.md — Payi
+# AGENTS.md — Payo
 
 ## What is this
 
-Payi is an MCP server that lets AI agents (Claude etc.) shop online on behalf of users.
+Payo is an MCP server that lets AI agents (Claude etc.) shop online on behalf of users.
 Users top up a wallet, the agent searches products and places orders via browser automation.
 
 ## Stack
@@ -64,7 +64,7 @@ npm run lint             # lint
 ## MCP install (Claude Desktop)
 
 ```bash
-opencode mcp add payi --url https://your-app.vercel.app/mcp --header "Authorization=Bearer YOUR_API_KEY"
+opencode mcp add payo --url https://your-app.vercel.app/mcp --header "Authorization=Bearer YOUR_API_KEY"
 ```
 
 ## Invite-only access

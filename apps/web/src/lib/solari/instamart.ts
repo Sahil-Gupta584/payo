@@ -27,7 +27,7 @@ export async function instamartCheckout(
   const cardBin = cardNumber.slice(0, 6)
   const [expMonth, expYearShort] = card.expiry.replace(/\s/g, '').split('/')
   const expYear = `20${expYearShort}`
-  const cardName = card.name ?? 'PAYI USER'
+  const cardName = card.name ?? 'PAYO USER'
 
   try {
     await step('load product page', page, async () => {

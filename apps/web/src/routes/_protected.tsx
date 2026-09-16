@@ -50,7 +50,7 @@ function ProtectedLayout() {
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground text-xs font-bold">
               $
             </span>
-            <span className="text-sm font-bold tracking-tight">Payi</span>
+            <span className="text-sm font-bold tracking-tight">Payo</span>
           </span>
 
           <DropdownMenu>

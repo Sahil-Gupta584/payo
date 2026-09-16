@@ -25,7 +25,7 @@ function Dashboard() {
         <p className="mb-4 text-xs text-zinc-400">Add this to your Claude Desktop config to start shopping with your agent.</p>
         <pre className="overflow-x-auto rounded-lg bg-black p-4 text-xs text-zinc-300">{`{
   "mcpServers": {
-    "payi": {
+    "payo": {
       "type": "http",
       "url": "${typeof window !== 'undefined' ? window.location.origin : 'https://your-app.vercel.app'}/mcp",
       "headers": {
