@@ -27,14 +27,43 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Start Starter',
+        title: 'Payo — Powering AI to shop online',
+      },
+      {
+        name: 'theme-color',
+        content: '#1A6FEF',
       },
     ],
     links: [
       {
+        rel: 'preconnect',
+        href: 'https://fonts.googleapis.com',
+      },
+      {
+        rel: 'preconnect',
+        href: 'https://fonts.gstatic.com',
+        crossOrigin: 'anonymous',
+      },
+      {
+        rel: 'stylesheet',
+        href: 'https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap',
+      },
+      {
+        rel: 'stylesheet',
+        href: 'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap',
+      },
+      {
+        rel: 'stylesheet',
+        href: 'https://fonts.googleapis.com/css2?family=Pacifico&display=swap',
+      },
+      {
         rel: 'stylesheet',
         href: appCss,
       },
+      { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon.png' },
+      { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/favicon.png' },
+      { rel: 'apple-touch-icon', sizes: '180x180', href: '/favicon.png' },
+      { rel: 'shortcut icon', href: '/favicon.png' },
     ],
   }),
   shellComponent: RootDocument,

@@ -3,6 +3,9 @@ import { useState } from 'react'
 import { authClient } from '#/lib/auth-client'
 import { getSession } from '#/lib/session'
 import { client } from '#/orpc/client'
+import { Button } from '#/components/ui/button'
+import { Input } from '#/components/ui/input'
+import { Card, CardContent } from '#/components/ui/card'
 
 export const Route = createFileRoute('/login')({
   beforeLoad: async () => {
@@ -46,64 +49,57 @@ function LoginPage() {
       <div className="absolute inset-0 bg-background/10 backdrop-blur-[1px]" />
       <div className="absolute inset-0 bg-gradient-to-b from-background/10 via-transparent to-background/20" />
 
-      <div className="relative w-full max-w-sm space-y-6 rounded-2xl border bg-card/90 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
-        <div className="text-center">
-          <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-lg shadow">
-            $
+      <Card className="relative w-full max-w-sm bg-card/80 backdrop-blur-xl shadow-2xl">
+        <CardContent className="space-y-6 p-6 sm:p-8">
+          <div className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center">
+              <img src="/favicon.png" alt="Payo" className="h-12 w-12 mix-blend-multiply" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight">Payo</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Let your AI agent shop for you</p>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Payo</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Let your AI agent shop for you</p>
-        </div>
 
-        {sent ? (
-          <div className="rounded-xl border bg-muted p-6 text-center">
-            <p className="text-sm font-medium">Check your email</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              We sent a login link to <span className="font-medium text-foreground">{email}</span>
-            </p>
-          </div>
-        ) : notInvited ? (
-          <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-center">
-            <p className="text-sm font-medium">Not on the invite list</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">{email}</span> is not invited yet.
-            </p>
-            <button
-              onClick={() => setNotInvited(false)}
-              className="mt-4 text-xs font-medium underline hover:text-foreground transition"
-            >
-              Try a different email
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <input
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full rounded-xl border bg-card px-4 py-3 text-sm placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-ring transition"
-            />
-            {error && <p className="text-xs text-destructive">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50"
-              style={{ minHeight: 44 }}
-            >
-              {loading ? 'Sending...' : 'Send magic link'}
-            </button>
-          </form>
-        )}
+          {sent ? (
+            <div className="state-enter rounded-xl border bg-muted p-6 text-center">
+              <p className="text-sm font-medium">Check your email</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                We sent a login link to <span className="font-medium text-foreground">{email}</span>
+              </p>
+            </div>
+          ) : notInvited ? (
+            <div className="state-enter rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-center">
+              <p className="text-sm font-medium">Not on the invite list</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">{email}</span> is not invited yet.
+              </p>
+              <Button variant="link" size="sm" onClick={() => setNotInvited(false)} className="mt-4 h-auto p-0 text-xs">
+                Try a different email
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <Input
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              {error && <p className="text-xs text-destructive">{error}</p>}
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? 'Sending...' : 'Send magic link'}
+              </Button>
+            </form>
+          )}
 
-        <p className="text-center text-xs text-muted-foreground">
-          Invite only — request access on{' '}
-          <a href="https://x.com" className="font-medium underline">
-            X
-          </a>
-        </p>
-      </div>
+          <p className="text-center text-xs text-muted-foreground">
+            Invite only — request access on{' '}
+            <a href="https://x.com/sahil_builds" target="_blank" rel="noopener noreferrer" className="font-medium underline hover:text-foreground">
+              X
+            </a>
+          </p>
+        </CardContent>
+      </Card>
     </div>
   )
 }

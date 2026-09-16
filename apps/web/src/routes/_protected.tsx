@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, redirect, useRouter } from '@tanstack/react-router'
+import { createFileRoute, Link, Outlet, redirect, useRouter } from '@tanstack/react-router'
 import { authClient } from '#/lib/auth-client'
 import { getSession } from '#/lib/session'
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
@@ -30,39 +30,34 @@ function ProtectedLayout() {
     router.navigate({ to: '/login' })
   }
 
-  const initials = user.name
-    ? user.name
-        .split(' ')
-        .map((n: string) => n[0])
-        .slice(0, 2)
-        .join('')
-        .toUpperCase()
+  const realName = user.name && !user.name.includes('@') ? user.name : null
+
+  const initials = realName
+    ? realName.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase()
     : (user.email?.[0] ?? 'U').toUpperCase()
 
-  const displayName = user.name ?? user.email?.split('@')[0] ?? 'User'
+  const displayName = realName ?? user.email ?? 'User'
   const displayEmail = user.email ?? ''
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <nav className="border-b bg-card px-4 sm:px-6">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between">
-          <span className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground text-xs font-bold">
-              $
-            </span>
-            <span className="text-sm font-bold tracking-tight">Payo</span>
-          </span>
+          <Link to="/dashboard" className="flex items-center gap-2 no-underline">
+            <img src="/favicon.png" alt="Payo" className="h-7 w-7 mix-blend-multiply" />
+            <span className="text-sm font-bold tracking-tight text-foreground">Payo</span>
+          </Link>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition hover:bg-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <button className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-[background-color] duration-[var(--duration-quick)] hover:bg-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <Avatar className="h-8 w-8">
                   {user.image && <AvatarImage src={user.image} alt={displayName} />}
                   <AvatarFallback className="text-xs">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
-                <span className="hidden text-sm font-medium sm:block">
+                <span className="hidden text-sm font-medium sm:block max-w-[160px] truncate">
                   {displayName}
                 </span>
                 <svg
