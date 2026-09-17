@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProtectedRouteImport } from './routes/_protected'
+import { Route as BgTestRouteImport } from './routes/bg-test'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
@@ -27,6 +28,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const ProtectedRoute = ProtectedRouteImport.update({
   id: '/_protected',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BgTestRoute = BgTestRouteImport.update({
+  id: '/bg-test',
+  path: '/bg-test',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -72,6 +78,7 @@ const ApiWebhookDodoRoute = ApiWebhookDodoRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/bg-test': typeof BgTestRoute
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
   '/dashboard': typeof ProtectedDashboardRoute
@@ -83,6 +90,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/bg-test': typeof BgTestRoute
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
   '/dashboard': typeof ProtectedDashboardRoute
@@ -96,6 +104,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_protected': typeof ProtectedRouteWithChildren
+  '/bg-test': typeof BgTestRoute
   '/login': typeof LoginRoute
   '/mcp': typeof McpRoute
   '/_protected/dashboard': typeof ProtectedDashboardRoute
@@ -109,6 +118,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/bg-test'
     | '/login'
     | '/mcp'
     | '/dashboard'
@@ -120,6 +130,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/bg-test'
     | '/login'
     | '/mcp'
     | '/dashboard'
@@ -132,6 +143,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_protected'
+    | '/bg-test'
     | '/login'
     | '/mcp'
     | '/_protected/dashboard'
@@ -145,6 +157,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ProtectedRoute: typeof ProtectedRouteWithChildren
+  BgTestRoute: typeof BgTestRoute
   LoginRoute: typeof LoginRoute
   McpRoute: typeof McpRoute
   ApiSplatRoute: typeof ApiSplatRoute
@@ -167,6 +180,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof ProtectedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bg-test': {
+      id: '/bg-test'
+      path: '/bg-test'
+      fullPath: '/bg-test'
+      preLoaderRoute: typeof BgTestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -245,6 +265,7 @@ const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ProtectedRoute: ProtectedRouteWithChildren,
+  BgTestRoute: BgTestRoute,
   LoginRoute: LoginRoute,
   McpRoute: McpRoute,
   ApiSplatRoute: ApiSplatRoute,

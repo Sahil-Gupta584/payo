@@ -43,6 +43,13 @@
       "when": 1789585043582,
       "tag": "0005_dizzy_bruce_banner",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789639149874,
+      "tag": "0006_strange_barracuda",
+      "breakpoints": true
     }
   ]
 }

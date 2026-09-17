@@ -77,33 +77,48 @@ function createServer(user: ResolvedUser) {
     'initiate_order',
     {
       title: 'Initiate order',
-      description: 'Place an order on Instamart. Checks wallet balance, runs browser automation.',
+      description: 'Place an order on Instamart. For card payment: checks wallet balance, runs browser automation, returns OTP prompt. For cod: places order directly via browser, no wallet needed.',
       inputSchema: {
         product_id: z.string().describe('id from search_products'),
         product_name: z.string(),
         amount: z.number().int().positive().describe('price in cents ($1 = 100)'),
+        payment_method: z.enum(['card', 'cod']).default('card').describe('card = charge wallet via card (requires OTP), cod = cash on delivery (no wallet needed)'),
       },
     },
-    async ({ product_id, product_name, amount }) => {
+    async ({ product_id, product_name, amount, payment_method }) => {
       if (!user) return unauthed
 
-      const freshUser = await db.query.user.findFirst({ where: eq(userTable.id, user.id) })
-      const balance = freshUser?.balance ?? 0
-      if (balance < amount) {
-        return { content: [{ type: 'text' as const, text: `Insufficient balance. Have $${(balance / 100).toFixed(2)}, need $${(amount / 100).toFixed(2)}` }], isError: true }
+      const pm = payment_method ?? 'card'
+
+      if (pm === 'card') {
+        const freshUser = await db.query.user.findFirst({ where: eq(userTable.id, user.id) })
+        const balance = freshUser?.balance ?? 0
+        if (balance < amount) {
+          return { content: [{ type: 'text' as const, text: `Insufficient balance. Have $${(balance / 100).toFixed(2)}, need $${(amount / 100).toFixed(2)}` }], isError: true }
+        }
       }
 
       const orderId = crypto.randomUUID()
-      await db.insert(order).values({ id: orderId, userId: user.id, platform: 'instamart', productId: product_id, productName: product_name, amount, status: 'pending' })
+      await db.insert(order).values({ id: orderId, userId: user.id, platform: 'instamart', productId: product_id, productName: product_name, amount, status: 'pending', paymentMethod: pm })
 
       const card = { number: env.PLATFORM_CARD_NUMBER, expiry: env.PLATFORM_CARD_EXPIRY, cvv: env.PLATFORM_CARD_CVV }
       const amountInr = amount / 100
-      const result = await instamartCheckout(product_id, card, amountInr)
-      await db.update(order).set({
-        status: result.success ? 'awaiting_otp' : 'failed',
-        errorMessage: result.error,
-      }).where(eq(order.id, orderId))
-      if (result.success && result.sbiFields) {
+      const result = await instamartCheckout(product_id, card, amountInr, pm)
+
+      if (!result.success) {
+        await db.update(order).set({ status: 'failed', errorMessage: result.error }).where(eq(order.id, orderId))
+        return { content: [{ type: 'text' as const, text: `Order failed: ${result.error}` }], isError: true }
+      }
+
+      if (pm === 'cod') {
+        await db.update(order).set({ status: 'confirmed' }).where(eq(order.id, orderId))
+        await db.insert(orderHistory).values({ id: orderId as any, userId: user.id, platform: 'instamart', productId: product_id, productName: product_name, amount, status: 'confirmed', paymentMethod: pm })
+        return { content: [{ type: 'text' as const, text: `✅ COD order placed!\n\nOrder ID: ${orderId}\nProduct: ${product_name} ($${(amount / 100).toFixed(2)})\nPayment: Cash on Delivery — pay when the delivery arrives.` }] }
+      }
+
+      // card — awaiting OTP
+      await db.update(order).set({ status: 'awaiting_otp' }).where(eq(order.id, orderId))
+      if (result.sbiFields) {
         await db.insert(orderPaymentSession).values({
           orderId,
           sbiTransactionId: result.sbiFields.transactionIdentifier,
@@ -112,18 +127,8 @@ function createServer(user: ResolvedUser) {
           sbiSignature: result.sbiFields.signature,
           expiresAt: new Date(Date.now() + 10 * 60 * 1000),
         })
-        // mirror to order_history for clean history (no temp fields) — use same id as order
-        await db.insert(orderHistory).values({
-          id: orderId as any,
-          userId: user.id,
-          platform: 'instamart',
-          productId: product_id,
-          productName: product_name,
-          amount,
-          status: 'awaiting_otp',
-        })
+        await db.insert(orderHistory).values({ id: orderId as any, userId: user.id, platform: 'instamart', productId: product_id, productName: product_name, amount, status: 'awaiting_otp', paymentMethod: pm })
       }
-      if (!result.success) return { content: [{ type: 'text' as const, text: `Order failed: ${result.error}` }], isError: true }
       return { content: [{ type: 'text' as const, text: `Order initiated — OTP sent to your mobile number.\n\nOrder ID: ${orderId}\nProduct: ${product_name} ($${(amount / 100).toFixed(2)})\n\nTo complete the booking, please share the 6-digit OTP and I will confirm the order via confirm_order.` }] }
     },
   )

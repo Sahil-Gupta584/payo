@@ -1,12 +1,12 @@
 import * as React from "react"
-import { cn } from "cn"
+import { cn } from "#/lib/utils"
 
 function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card"
       className={cn(
-        "flex flex-col gap-6 rounded-xl border  py-6 text-card-foreground shadow-sm",
+        "flex flex-col gap-6 rounded-xl border border-border/80 bg-card py-6 text-card-foreground shadow-[0_1px_3px_0_rgba(0,0,0,0.04),inset_0_1px_0_0_rgba(255,255,255,0.06)] ring-1 ring-black/[0.03] transition-[border-color,box-shadow] dark:border-border/70 dark:ring-white/[0.06] dark:shadow-[0_1px_3px_0_rgba(0,0,0,0.3),inset_0_1px_0_0_rgba(255,255,255,0.08)]",
         className
       )}
       {...props}
@@ -19,7 +19,7 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-header"
       className={cn(
-        "@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-2 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6",
+        "@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-2 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:border-border/60 [.border-b]:pb-6",
         className
       )}
       {...props}
@@ -74,7 +74,7 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-footer"
-      className={cn("flex items-center px-6 [.border-t]:pt-6", className)}
+      className={cn("flex items-center px-6 [.border-t]:border-border/60 [.border-t]:pt-6", className)}
       {...props}
     />
   )

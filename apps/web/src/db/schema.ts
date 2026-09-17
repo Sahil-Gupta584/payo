@@ -1,6 +1,8 @@
 import { relations } from "drizzle-orm";
 import { pgTable, text, timestamp, boolean, index, serial, integer, pgEnum, uuid } from "drizzle-orm/pg-core";
 
+export const paymentMethodEnum = pgEnum("payment_method", ["card", "cod"])
+
 export const todos = pgTable('todos', {
   id: serial().primaryKey(),
   title: text().notNull(),
@@ -125,6 +127,7 @@ export const order = pgTable(
     productName: text("product_name").notNull(),
     amount: integer("amount").notNull(),
     status: orderStatusEnum("status").notNull().default("pending"),
+    paymentMethod: paymentMethodEnum("payment_method").notNull().default("card"),
     errorMessage: text("error_message"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()).notNull(),
@@ -140,6 +143,7 @@ export const orderHistory = pgTable("order_history", {
   productName: text("product_name").notNull(),
   amount: integer("amount").notNull(),
   status: orderStatusEnum("status").notNull(),
+  paymentMethod: paymentMethodEnum("payment_method").notNull().default("card"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [index("order_history_userId_idx").on(table.userId)]);
 

@@ -17,6 +17,7 @@ export async function instamartCheckout(
   productId: string,
   card: { number: string; expiry: string; cvv: string; name?: string },
   amountInr: number,
+  paymentMethod: 'card' | 'cod' = 'card',
 ): Promise<InstamartCheckoutResult> {
   const { browser, sessionId } = await launchBrowser(env.INSTAMART_PROFILE_ID)
   const page = await browser.newPage()
@@ -52,6 +53,30 @@ export async function instamartCheckout(
       await page.waitForLoadState('domcontentloaded')
       await page.waitForTimeout(3000)
     })
+
+    if (paymentMethod === 'cod') {
+      await step('wait for payment page', page, async () => {
+        await page.waitForURL('**/payment**', { timeout: 15000 })
+      })
+
+      await step('click Pay on Delivery', page, async () => {
+        await page.click('[data-testid="pg_mo_cod"]')
+        await page.waitForSelector('[data-testid="pm_cod_container"]', { timeout: 10000 })
+      })
+
+      await step('select Cash/COD option', page, async () => {
+        await page.click('[data-testid="pm_cod_tick"]')
+        await page.waitForSelector('[data-testid="pm_cod_pay_btn"]', { timeout: 10000 })
+      })
+
+      await step('place COD order', page, async () => {
+        await page.click('[data-testid="pm_cod_pay_btn"]')
+        await page.waitForURL((url: URL) => !url.pathname.includes('/payment'), { timeout: 15000 })
+      })
+
+      await browser.close()
+      return { success: true, sessionId }
+    }
 
     // checkout/order via page.evaluate — needs profile cookies
     const checkoutResult = await step('checkout/order API', page, async () => {
