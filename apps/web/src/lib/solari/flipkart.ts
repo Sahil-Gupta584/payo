@@ -1,7 +1,7 @@
 import { launchBrowser, step } from './index.js'
 import { env } from '#/env'
 
-const FLIPKART_PROFILE_ID = env.FLIPKART_PROFILE_ID
+const FLIPKART_PROFILE_ID = env.SOLARI_PROFILE_ID
 
 export type FlipkartCheckoutResult = {
   success: boolean

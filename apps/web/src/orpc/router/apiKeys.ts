@@ -14,7 +14,7 @@ export const listApiKeys = authed.handler(async ({ context }) => {
 })
 
 export const createApiKey = authed
-  .input(z.object({ name: z.string().min(1).max(30).default('default') }))
+  .input(z.object({ name: z.string().trim().min(1).max(30).default('default') }))
   .handler(async ({ input, context }) => {
     const raw = `payo_${randomBytes(24).toString('hex')}`
     const hash = createHash('sha256').update(raw).digest('hex')
@@ -26,7 +26,7 @@ export const createApiKey = authed
   })
 
 export const revokeApiKey = authed
-  .input(z.object({ id: z.string() }))
+  .input(z.object({ id: z.string().trim() }))
   .handler(async ({ input, context }) => {
     await db.delete(apiKey).where(eq(apiKey.id, input.id))
     // ensure ownership — re-check via query (no-op if not owned, safe)

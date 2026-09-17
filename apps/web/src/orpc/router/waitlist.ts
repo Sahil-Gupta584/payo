@@ -3,7 +3,7 @@ import { base } from '#/orpc/middleware'
 import { env } from '#/env'
 
 export const joinWaitlist = base
-  .input(z.object({ email: z.string().email() }))
+  .input(z.object({ email: z.string().trim().email() }))
   .handler(async ({ input }) => {
     try {
       const { Resend } = await import('resend')

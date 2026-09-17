@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
 import { Route as ProtectedSettingsRouteImport } from './routes/_protected/settings'
+import { Route as ProtectedTopupRouteImport } from './routes/_protected/topup'
 import { Route as ApiSplatRouteImport } from './routes/api.$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiRpcSplatRouteImport } from './routes/api.rpc.$'
@@ -55,6 +56,11 @@ const ProtectedSettingsRoute = ProtectedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => ProtectedRoute,
 } as any)
+const ProtectedTopupRoute = ProtectedTopupRouteImport.update({
+  id: '/topup',
+  path: '/topup',
+  getParentRoute: () => ProtectedRoute,
+} as any)
 const ApiSplatRoute = ApiSplatRouteImport.update({
   id: '/api/$',
   path: '/api/$',
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/mcp': typeof McpRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/settings': typeof ProtectedSettingsRoute
+  '/topup': typeof ProtectedTopupRoute
   '/api/$': typeof ApiSplatRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   '/mcp': typeof McpRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/settings': typeof ProtectedSettingsRoute
+  '/topup': typeof ProtectedTopupRoute
   '/api/$': typeof ApiSplatRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/mcp': typeof McpRoute
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/_protected/settings': typeof ProtectedSettingsRoute
+  '/_protected/topup': typeof ProtectedTopupRoute
   '/api/$': typeof ApiSplatRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/rpc/$': typeof ApiRpcSplatRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | '/mcp'
     | '/dashboard'
     | '/settings'
+    | '/topup'
     | '/api/$'
     | '/api/auth/$'
     | '/api/rpc/$'
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
     | '/mcp'
     | '/dashboard'
     | '/settings'
+    | '/topup'
     | '/api/$'
     | '/api/auth/$'
     | '/api/rpc/$'
@@ -148,6 +159,7 @@ export interface FileRouteTypes {
     | '/mcp'
     | '/_protected/dashboard'
     | '/_protected/settings'
+    | '/_protected/topup'
     | '/api/$'
     | '/api/auth/$'
     | '/api/rpc/$'
@@ -217,6 +229,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedSettingsRouteImport
       parentRoute: typeof ProtectedRoute
     }
+    '/_protected/topup': {
+      id: '/_protected/topup'
+      path: '/topup'
+      fullPath: '/topup'
+      preLoaderRoute: typeof ProtectedTopupRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
     '/api/$': {
       id: '/api/$'
       path: '/api/$'
@@ -251,11 +270,13 @@ declare module '@tanstack/react-router' {
 interface ProtectedRouteChildren {
   ProtectedDashboardRoute: typeof ProtectedDashboardRoute
   ProtectedSettingsRoute: typeof ProtectedSettingsRoute
+  ProtectedTopupRoute: typeof ProtectedTopupRoute
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedDashboardRoute: ProtectedDashboardRoute,
   ProtectedSettingsRoute: ProtectedSettingsRoute,
+  ProtectedTopupRoute: ProtectedTopupRoute,
 }
 
 const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(

@@ -1,0 +1,1 @@
+ALTER TABLE "user_address" DROP COLUMN "blinkit_address_id";

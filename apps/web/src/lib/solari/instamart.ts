@@ -13,13 +13,26 @@ export type InstamartCheckoutResult = {
   error?: string
 }
 
+export type DeliveryAddressInfo = {
+  recipientName: string
+  recipientPhone: string
+  line1: string
+  line2?: string | null
+  landmark?: string | null
+  city: string
+  state: string
+  pincode: string
+  latitude: string
+  longitude: string
+}
+
 export async function instamartCheckout(
   productId: string,
   card: { number: string; expiry: string; cvv: string; name?: string },
-  amountInr: number,
   paymentMethod: 'card' | 'cod' = 'card',
+  addr?: DeliveryAddressInfo,
 ): Promise<InstamartCheckoutResult> {
-  const { browser, sessionId } = await launchBrowser(env.INSTAMART_PROFILE_ID)
+  const { browser, sessionId } = await launchBrowser(env.SOLARI_PROFILE_ID)
   const page = await browser.newPage()
   await page.setViewportSize({ width: 1280, height: 800 })
   page.setDefaultTimeout(30000)
@@ -80,20 +93,21 @@ export async function instamartCheckout(
 
     // checkout/order via page.evaluate — needs profile cookies
     const checkoutResult = await step('checkout/order API', page, async () => {
-      return page.evaluate(async ([cardBin, cardName, expiry, expMonth, expYear, amountInr]: string[]) => {
-        const h = JSON.parse(localStorage.getItem('auth_headers') || '{}')
-        const ctx = JSON.parse(localStorage.getItem('__payment_context__') || '{}')
-        const locCookie = document.cookie.split('; ').find((c: string) => c.startsWith('userLocation='))
-        const loc = locCookie ? JSON.parse(decodeURIComponent(locCookie.split('=').slice(1).join('='))) : {}
+      return page.evaluate(
+        async ([cardBin, cardName, expiry, expMonth, expYear, userLat, userLng]: (string | undefined)[]) => {
+          const h = JSON.parse(localStorage.getItem('auth_headers') || '{}')
+          const ctx = JSON.parse(localStorage.getItem('__payment_context__') || '{}')
+          const locCookie = document.cookie.split('; ').find((c: string) => c.startsWith('userLocation='))
+          const loc = locCookie ? JSON.parse(decodeURIComponent(locCookie.split('=').slice(1).join('='))) : {}
 
-        const addressId = ctx.addressId || h.cartaddressid || loc.id
-        const lat = h.lat || String(loc.lat)
-        const lng = h.lng || String(loc.lng)
+          const addressId = ctx.addressId || h.cartaddressid || loc.id
+          const lat = userLat || h.lat || String(loc.lat)
+          const lng = userLng || h.lng || String(loc.lng)
 
         const state = JSON.parse(localStorage.getItem('swgy_checkout_state_payload') || '{}')
         const txnAmount = state?.placeOrderData?.order?.orderTotal ||
                           state?.placeOrderData?.extraParams?.transaction_amount ||
-                          Number(amountInr)
+                          0
 
         const metaObj = {
           address_id: addressId, payment_cod_method: 'Juspay', order_comments: '',
@@ -153,7 +167,7 @@ export async function instamartCheckout(
           statusCode: data?.statusCode as number,
           statusMessage: data?.statusMessage as string,
         }
-      }, [cardBin, cardName, card.expiry, expMonth, expYear, String(amountInr)])
+      }, [cardBin, cardName, card.expiry, expMonth, expYear, addr?.latitude, addr?.longitude])
     })
 
     if (!checkoutResult.txnId) throw new Error(`checkout/order failed: ${checkoutResult.statusCode} ${checkoutResult.statusMessage}`)
@@ -186,23 +200,10 @@ export async function instamartCheckout(
       await page.goto(authUrl, { waitUntil: 'domcontentloaded', timeout: 30000 })
     })
 
-    // Wait for SBI iframe to navigate to crqsbiacs.sbi.bank.in
-    const sbiFrame = await step('wait for SBI OTP iframe', page, async () => {
-      await page.waitForEvent('framenavigated',
-        (f: any) => f.url().includes('crqsbiacs.sbi.bank.in'),
-      )
-      const frame = page.frames().find((f: any) => f.url().includes('crqsbiacs.sbi.bank.in'))
-      if (!frame) throw new Error('SBI iframe not found')
-      await frame.waitForSelector('#transactionIdentifier', { timeout: 20000 })
-      return frame
+    const { scrapeSbiOtpFields } = await import('./sbi-otp.js')
+    const sbiFields = await step('scrape SBI form fields', page, async () => {
+      return scrapeSbiOtpFields(page)
     })
-
-    const sbiFields = await step('scrape SBI form fields', page, async () => ({
-      transactionIdentifier: await sbiFrame.locator('#transactionIdentifier').inputValue(),
-      nonce: await sbiFrame.locator('#nonce').inputValue(),
-      timestamp: await sbiFrame.locator('#timestamp').inputValue(),
-      signature: await sbiFrame.locator('#signature').inputValue(),
-    }))
 
     console.log('[OK] SBI fields scraped, transactionIdentifier:', sbiFields.transactionIdentifier)
     await browser.close()

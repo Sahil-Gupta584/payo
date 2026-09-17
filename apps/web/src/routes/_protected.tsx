@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '#/components/ui/dropdown-menu'
-import { LayoutDashboard, CreditCard, Settings, LogOut, User, Key } from 'lucide-react'
+import { LayoutDashboard, Wallet, Settings, LogOut } from 'lucide-react'
 
 export const Route = createFileRoute('/_protected')({
   beforeLoad: async () => {
@@ -41,7 +41,7 @@ function ProtectedLayout() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <nav className="border-b bg-card px-4 sm:px-6">
+      <nav className="border-b border-border bg-white shadow-[0_1px_2px_0_rgba(0,0,0,0.03)] px-4 sm:px-6 sticky top-0 z-30">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between">
           <Link to="/dashboard" className="flex items-center gap-2 no-underline">
             <img src="/favicon.png" alt="Payo" className="h-7 w-7 mix-blend-multiply" />
@@ -99,24 +99,14 @@ function ProtectedLayout() {
                 Dashboard
               </DropdownMenuItem>
 
-              <DropdownMenuItem onClick={() => router.navigate({ to: '/dashboard' })}>
-                <CreditCard className="h-4 w-4" />
-                Wallet
-              </DropdownMenuItem>
-
-              <DropdownMenuItem onClick={() => router.navigate({ to: '/dashboard' })}>
-                <User className="h-4 w-4" />
-                Profile
-              </DropdownMenuItem>
-
-              <DropdownMenuItem onClick={() => router.navigate({ to: '/dashboard' })}>
-                <Settings className="h-4 w-4" />
-                Settings
+              <DropdownMenuItem onClick={() => router.navigate({ to: '/topup' as any })}>
+                <Wallet className="h-4 w-4" />
+                Top up
               </DropdownMenuItem>
 
               <DropdownMenuItem onClick={() => router.navigate({ to: '/settings' })}>
-                <Key className="h-4 w-4" />
-                API Keys
+                <Settings className="h-4 w-4" />
+                Settings
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />

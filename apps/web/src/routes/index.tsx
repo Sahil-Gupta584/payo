@@ -125,8 +125,8 @@ function ClaudeCard() {
                         digit
                           ? "border-neutral-300 bg-neutral-50 text-neutral-900 shadow-2xs"
                           : idx === 3
-                          ? "border-blue-500 bg-blue-50/50 text-blue-600 ring-2 ring-blue-500/25"
-                          : "border-neutral-200 bg-neutral-50/40 text-neutral-400"
+                            ? "border-blue-500 bg-blue-50/50 text-blue-600 ring-2 ring-blue-500/25"
+                            : "border-neutral-200 bg-neutral-50/40 text-neutral-400"
                       )}
                     >
                       {digit || (idx === 3 ? <span className="h-3.5 w-0.5 animate-pulse bg-blue-600" /> : '•')}
@@ -179,13 +179,13 @@ function LandingPage() {
       style={{ backgroundImage: 'url(/hero-image.png)', fontFamily: '"Nunito", sans-serif' }}
     >
       {/* ── Nav ── */}
-      <header className="sticky top-4 z-50 flex justify-center px-4 sm:px-8">
-        <div className="flex w-full max-w-[820px] items-center justify-between rounded-full border border-white/80 bg-white/75 px-5 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.09),0_1px_2px_rgba(0,0,0,0.04),inset_0_1px_0_0_rgba(255,255,255,0.9)] backdrop-blur-xl ring-1 ring-black/[0.04] transition-all dark:border-white/10 dark:bg-black/60 dark:ring-white/[0.05] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.1)]">
-          <Link to="/" className="flex items-center gap-2 no-underline">
-            <img src="/favicon.png" alt="Payo" className="h-7 w-7" />
+      <header className="bg-transparent z-50 flex w-full justify-center px-6 sm:px-12 py-3.5 transition-all dark:border-white/10 dark:bg-black/60 dark:shadow-[0_4px_20px_-2px_rgba(0,0,0,0.4)]">
+        <div className="flex w-full max-w-[820px]  py-2 px-4 border roeunde rounded-full border-black/[0.08] shadow-[0_10px_8px_-8px_rgba(0,0,0,0.08)] dark:border-white/10 dark:shadow-[0_10px_8px_-8px_rgba(0,0,0,0.4)] items-center justify-between">
+          <Link to="/" className="flex items-center mb-2 no-underline">
+            <img src="/favicon.png" alt="Payo" className="h-8 w-8" />
             <span className="text-[16px] font-extrabold tracking-tight text-foreground">Payo</span>
           </Link>
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-4">
             <Link to="/login" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors no-underline">
               Sign in
             </Link>
@@ -193,7 +193,7 @@ function LandingPage() {
               href="https://x.com/sahil_builds"
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-full bg-foreground px-4 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-background! no-underline shadow-xs hover:opacity-90 transition-opacity"
+              className="rounded-full bg-foreground px-5 py-2 text-sm font-semibold text-white! no-underline shadow-xs hover:opacity-90 transition-opacity"
             >
               Get access
             </a>
@@ -214,7 +214,17 @@ function LandingPage() {
             className="mb-4 text-[clamp(44px,5vw,66px)] font-black leading-[1.05] tracking-[-2px] text-foreground"
             style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
           >
-            Your agents can finally <span className="text-blue-600">buy.</span>
+            Your agents can<br />
+            finally{' '}
+            <span
+              className="relative inline-block font-black text-blue-600"
+              style={{
+                textShadow:
+                  '0 -1.5px 0 rgba(255, 255, 255, 0.9), 0 -2.5px 0 rgba(147, 197, 253, 0.75), 0 2px 10px rgba(37, 99, 235, 0.25)',
+              }}
+            >
+              buy.
+            </span>
           </h1>
 
           <p className="mb-8 max-w-[500px] text-[17px] leading-relaxed text-foreground/60">

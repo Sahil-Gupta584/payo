@@ -1,0 +1,1 @@
+ALTER TABLE "user_address" DROP COLUMN "is_default";

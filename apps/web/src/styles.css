@@ -3,7 +3,7 @@
 
 @import 'tw-animate-css';
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is(.dark, .dark *));
 
 /* ── Motion tokens (transitions.dev) ────────────────────────────── */
 :root {
@@ -54,61 +54,61 @@
 
 :root {
   /* System roles */
-  --system-blue: #007AFF;
-  --system-green: #34C759;
-  --system-red: #FF3B30;
-  --label: #000000;
-  --secondary-label: #435d66;
-  --tertiary-label: rgba(60, 60, 67, 0.3);
-  --system-background: #FFFFFF;
-  --secondary-system-background: #F2F2F7;
+  --system-blue: #2563EB;
+  --system-green: #16A34A;
+  --system-red: #DC2626;
+  --label: #0F172A;
+  --secondary-label: #64748B;
+  --tertiary-label: #94A3B8;
+  --system-background: #F8F9FB;
+  --secondary-system-background: #F1F3F7;
   --tertiary-system-background: #FFFFFF;
   --system-gray: #8E8E93;
   --system-gray2: #AEAEB2;
   --system-gray3: #C7C7CC;
   --system-gray4: #D1D1D6;
-  --system-gray5: #E5E5EA;
-  --system-gray6: #F2F2F7;
-  --separator: rgba(60, 60, 67, 0.12);
-  --separator-opaque: #C6C6C8;
+  --system-gray5: #E2E8F0;
+  --system-gray6: #F1F3F7;
+  --separator: #E2E8F0;
+  --separator-opaque: #CBD5E1;
 
   /* App semantic tokens (mapped to Tailwind) */
-  --background: var(--system-background);
-  --foreground: var(--label);
-  --card: var(--system-background);
-  --card-foreground: var(--label);
-  --popover: var(--system-background);
-  --popover-foreground: var(--label);
-  --primary: var(--system-blue);
+  --background: #F8F9FB;
+  --foreground: #0F172A;
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+  --primary: #2563EB;
   --primary-foreground: #FFFFFF;
-  --secondary: var(--system-gray6);
-  --secondary-foreground: var(--label);
-  --muted: var(--system-gray6);
-  --muted-foreground: var(--secondary-label);
-  --accent: var(--system-gray6);
-  --accent-foreground: var(--label);
-  --destructive: var(--system-red);
+  --secondary: #F1F3F7;
+  --secondary-foreground: #0F172A;
+  --muted: #F1F3F7;
+  --muted-foreground: #64748B;
+  --accent: #F1F3F7;
+  --accent-foreground: #0F172A;
+  --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
-  --border: var(--separator);
-  --input: var(--separator);
-  --ring: var(--system-blue);
+  --border: #E2E8F0;
+  --input: #CBD5E1;
+  --ring: #2563EB;
 
-  --chart-1: var(--system-blue);
-  --chart-2: var(--system-green);
-  --chart-3: #FF9500;
-  --chart-4: #AF52DE;
-  --chart-5: #FF2D55;
+  --chart-1: #2563EB;
+  --chart-2: #16A34A;
+  --chart-3: #F59E0B;
+  --chart-4: #8B5CF6;
+  --chart-5: #EC4899;
 
   --radius: 0.75rem;
 
-  --sidebar: var(--secondary-system-background);
-  --sidebar-foreground: var(--label);
-  --sidebar-primary: var(--system-blue);
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #0F172A;
+  --sidebar-primary: #2563EB;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: var(--system-gray6);
-  --sidebar-accent-foreground: var(--label);
-  --sidebar-border: var(--separator);
-  --sidebar-ring: var(--system-blue);
+  --sidebar-accent: #F1F3F7;
+  --sidebar-accent-foreground: #0F172A;
+  --sidebar-border: #E2E8F0;
+  --sidebar-ring: #2563EB;
 }
 
 .dark {

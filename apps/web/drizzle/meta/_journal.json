@@ -50,6 +50,34 @@
       "when": 1789639149874,
       "tag": "0006_strange_barracuda",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789654469732,
+      "tag": "0007_normal_excalibur",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789673465388,
+      "tag": "0008_sleepy_harrier",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789674714912,
+      "tag": "0009_futuristic_red_hulk",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789683733134,
+      "tag": "0010_kind_rafael_vega",
+      "breakpoints": true
     }
   ]
 }

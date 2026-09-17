@@ -115,7 +115,7 @@ export const orderStatusEnum = pgEnum("order_status", [
   "cancelled",
 ]);
 
-export const platformEnum = pgEnum("platform", ["flipkart", "instamart"]);
+export const platformEnum = pgEnum("platform", ["flipkart", "instamart", "blinkit"]);
 
 export const order = pgTable(
   "order",
@@ -214,8 +214,31 @@ export const orderPaymentSessionRelations = relations(orderPaymentSession, ({ on
   order: one(order, { fields: [orderPaymentSession.orderId], references: [order.id] }),
 }));
 
-export const apiKeyRelations = relations(apiKey, ({ one }) => ({
-  user: one(user, { fields: [apiKey.userId], references: [user.id] }),
+// ── User Addresses (multiple per user, e.g. Home, Office) ─────────────
+
+export const userAddress = pgTable("user_address", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  label: text("label").notNull().default("Home"), // "Home", "Office", etc.
+  recipientName: text("recipient_name").notNull(),
+  recipientPhone: text("recipient_phone").notNull(),
+  line1: text("line1").notNull(),
+  line2: text("line2"),
+  landmark: text("landmark"),
+  city: text("city").notNull(),
+  state: text("state").notNull(),
+  pincode: text("pincode").notNull(),
+  latitude: text("latitude").notNull(),
+  longitude: text("longitude").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+}, (table) => [index("user_address_userId_idx").on(table.userId)]);
+
+export const userAddressRelations = relations(userAddress, ({ one }) => ({
+  user: one(user, { fields: [userAddress.userId], references: [user.id] }),
 }));
 
 // ── Invite allowlist ──────────────────────────────────────────────────────────
@@ -235,6 +258,8 @@ export type Order = typeof order.$inferSelect
 export type OrderHistory = typeof orderHistory.$inferSelect
 export type OrderPaymentSession = typeof orderPaymentSession.$inferSelect
 export type ApiKey = typeof apiKey.$inferSelect
+export type UserAddress = typeof userAddress.$inferSelect
+export type NewUserAddress = typeof userAddress.$inferInsert
 export type NewOrder = typeof order.$inferInsert
 export type OrderStatus = Order["status"]
 export type Platform = Order["platform"]
