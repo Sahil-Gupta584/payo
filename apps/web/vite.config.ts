@@ -9,7 +9,22 @@ import { nitro } from 'nitro/vite'
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
-  plugins: [devtools(), nitro(), tailwindcss(), tanstackStart(), viteReact()],
+  build: {
+    rolldownOptions: {
+      external: [
+        'chromium-bidi/lib/cjs/bidiMapper/BidiMapper',
+        /^chromium-bidi/,
+        'patchright-core',
+      ],
+    },
+  },
+  plugins: [
+    devtools(),
+    nitro(),
+    tailwindcss(),
+    tanstackStart(),
+    viteReact(),
+  ],
 })
 
 export default config
