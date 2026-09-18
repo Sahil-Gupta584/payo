@@ -23,5 +23,3 @@ zerops:
         httpGet:
           port: 4000
           path: /health
-        execPeriod: 15
-        failureTimeout: 60
