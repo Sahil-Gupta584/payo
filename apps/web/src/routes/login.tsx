@@ -93,8 +93,8 @@ function LoginPage() {
               </Button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-3.5">
-              <div className="space-y-1.5">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+              <div className="flex flex-col gap-1.5">
                 <label htmlFor="login-name" className="text-xs font-medium text-muted-foreground">
                   Your Name
                 </label>
@@ -108,7 +108,7 @@ function LoginPage() {
                   autoFocus
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <label htmlFor="login-email" className="text-xs font-medium text-muted-foreground">
                   Email Address
                 </label>

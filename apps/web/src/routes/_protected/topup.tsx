@@ -95,7 +95,7 @@ function TopupPage() {
               </div>
 
               {/* Amount Selection */}
-              <div className="mt-6 space-y-4">
+              <div className="mt-6 flex flex-col gap-3">
                 <label className="text-sm font-semibold">Select or enter amount (USD)</label>
 
                 {/* Preset Chips */}

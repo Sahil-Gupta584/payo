@@ -170,7 +170,7 @@ function GeneralTab({ user }: { user: any }) {
 
             <Separator />
 
-            <div className="space-y-2">
+            <div className="flex flex-col gap-1.5 max-w-md">
               <label htmlFor="name-input" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Display Name
               </label>
@@ -179,18 +179,18 @@ function GeneralTab({ user }: { user: any }) {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your full name"
-                className="max-w-md"
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <div className="flex flex-col gap-1.5 max-w-md">
+              <label htmlFor="email-input" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Email Address
               </label>
               <Input
+                id="email-input"
                 value={user.email}
                 disabled
-                className="max-w-md opacity-60 cursor-not-allowed bg-muted/50"
+                className="opacity-60 cursor-not-allowed bg-muted/50"
               />
               <p className="text-[11px] text-muted-foreground">
                 Email address cannot be changed (used for passwordless magic links).
@@ -738,7 +738,7 @@ function AddressForm({
       </div>
 
       {/* Editable Label Input with Quick Preset Chips */}
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between">
           <label className="text-xs font-medium text-muted-foreground">Address Label *</label>
           <div className="flex items-center gap-1">
@@ -768,7 +768,7 @@ function AddressForm({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">Recipient Name *</label>
           <Input
             placeholder="Recipient full name"
@@ -776,7 +776,7 @@ function AddressForm({
             onChange={(e) => setRecipientName(e.target.value)}
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">Phone Number *</label>
           <Input
             placeholder="10-digit mobile number"
@@ -787,7 +787,7 @@ function AddressForm({
         </div>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-1.5">
         <label className="text-xs font-medium text-muted-foreground">Flat / House No. / Building / Floor *</label>
         <Input
           placeholder="e.g. Flat 302, Building 4B, Sunrise Heights"
@@ -797,7 +797,7 @@ function AddressForm({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">Street / Sector / Area</label>
           <Input
             placeholder="e.g. Indiranagar, Sector 14"
@@ -805,7 +805,7 @@ function AddressForm({
             onChange={(e) => setLine2(e.target.value)}
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">Landmark (Optional)</label>
           <Input
             placeholder="e.g. Near Metro Station"
@@ -816,7 +816,7 @@ function AddressForm({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">City *</label>
           <Input
             placeholder="City"
@@ -824,7 +824,7 @@ function AddressForm({
             onChange={(e) => setCity(e.target.value)}
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">State *</label>
           <Input
             placeholder="State"
@@ -832,7 +832,7 @@ function AddressForm({
             onChange={(e) => setState(e.target.value)}
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">Pincode *</label>
           <Input
             placeholder="6-digit pincode"
