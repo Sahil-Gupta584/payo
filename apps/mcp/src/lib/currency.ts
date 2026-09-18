@@ -31,6 +31,19 @@ export async function getUsdToInrRate(): Promise<number> {
 }
 
 /**
+ * Returns the Payo service fee in USD cents for a given order amount.
+ * Tiered to recover Dodo payment processing costs over multiple orders.
+ *   < $5.00  → $0.20
+ *   $5–$15   → $0.35
+ *   > $15.00 → $0.50
+ */
+export function getServiceFeeCents(orderAmountCents: number): number {
+  if (orderAmountCents < 500) return 20
+  if (orderAmountCents <= 1500) return 35
+  return 50
+}
+
+/**
  * Converts Indian Rupees (INR) to USD Cents ($1 = 100 cents).
  * Example: ₹87 INR with rate 87.0 => 100 USD cents ($1.00)
  */

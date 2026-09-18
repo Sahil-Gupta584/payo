@@ -2,8 +2,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
-import { db, apiKey, user as userTable, order, orderHistory, orderPaymentSession, userAddress, session as sessionTable, type User } from '@repo/db'
-import { eq, desc, and, gte } from 'drizzle-orm'
+import { db, apiKey, user as userTable, order, orderHistory, orderPaymentSession, walletHistory, userAddress, session as sessionTable, type User } from '@repo/db'
+import { eq, desc, and, gte, sql } from 'drizzle-orm'
 import { createHash } from 'node:crypto'
 import { instamartCheckout } from './lib/solari/instamart.js'
 import { blinkitCheckout } from './lib/solari/blinkit.js'
@@ -274,10 +274,32 @@ export function createServer(user: User | null) {
       }
 
       if (pm === 'cod') {
-        await db.update(order).set({ status: 'confirmed' }).where(eq(order.id, orderId))
-        await db.insert(orderHistory).values({ id: orderId as any, userId: user.id, platform: targetPlatform, productId: product_id, productName: product_name, amount: finalAmount, status: 'confirmed', paymentMethod: pm })
+        const { getServiceFeeCents } = await import('./lib/currency.js')
+        const serviceFeeCents = getServiceFeeCents(finalAmount)
+        const totalDue = finalAmount + serviceFeeCents
+
+        const freshUser = await db.query.user.findFirst({ where: eq(userTable.id, user.id) })
+        const balance = freshUser?.balance ?? 0
+        if (balance < totalDue) {
+          await db.update(order).set({ status: 'failed', errorMessage: 'Insufficient balance for COD fee' }).where(eq(order.id, orderId))
+          return { content: [{ type: 'text' as const, text: `❌ Insufficient wallet balance.\n\nOrder: $${(finalAmount / 100).toFixed(2)}\nService fee: $${(serviceFeeCents / 100).toFixed(2)}\nTotal: $${(totalDue / 100).toFixed(2)}\nWallet: $${(balance / 100).toFixed(2)}` }], isError: true }
+        }
+
+        await db.transaction(async (tx) => {
+          const [debited] = await tx.update(userTable)
+            .set({ balance: sql`${userTable.balance} - ${totalDue}` })
+            .where(and(eq(userTable.id, user.id), gte(userTable.balance, totalDue)))
+            .returning()
+          if (!debited) throw new Error('Insufficient balance')
+
+          await tx.insert(walletHistory).values({ userId: user.id, amount: finalAmount, type: 'debit', description: `COD Order ${product_name}`, balanceAfter: debited.balance! + serviceFeeCents, referenceId: orderId })
+          await tx.insert(walletHistory).values({ userId: user.id, amount: serviceFeeCents, type: 'debit', description: `Service fee - ${product_name}`, balanceAfter: debited.balance, referenceId: orderId })
+          await tx.update(order).set({ status: 'confirmed' }).where(eq(order.id, orderId))
+          await tx.insert(orderHistory).values({ id: orderId as any, userId: user.id, platform: targetPlatform, productId: product_id, productName: product_name, amount: finalAmount, status: 'confirmed', paymentMethod: pm })
+        })
+
         const deliveryInfo = `\nDelivering to: ${chosenAddress.label} (${chosenAddress.recipientName} - ${chosenAddress.recipientPhone})\nAddress: ${chosenAddress.line1}, ${chosenAddress.city}`
-        return { content: [{ type: 'text' as const, text: `✅ COD order placed!\n\nOrder ID: ${orderId}\nPlatform: ${targetPlatform}\nProduct: ${product_name} ($${(finalAmount / 100).toFixed(2)})${deliveryInfo}\nPayment: Cash on Delivery — pay when the delivery arrives.` }] }
+        return { content: [{ type: 'text' as const, text: `✅ COD order placed!\n\nOrder ID: ${orderId}\nPlatform: ${targetPlatform}\nProduct: ${product_name}\nOrder: $${(finalAmount / 100).toFixed(2)} + $${(serviceFeeCents / 100).toFixed(2)} service fee${deliveryInfo}\nPayment: Cash on Delivery — pay when the delivery arrives.` }] }
       }
 
       // Card — awaiting OTP
@@ -347,11 +369,12 @@ export function createServer(user: User | null) {
       }
 
       const orderAmount = result.order?.amount ?? 0
+      const svcFee = result.serviceFeeCents ?? 0
       return {
         content: [
           {
             type: 'text' as const,
-            text: `✅ Order confirmed!\n\nOrder ID: ${order_id}\nAmount: $${(orderAmount / 100).toFixed(2)} debited from wallet.\nNew Wallet Balance: $${((result.newBalance ?? 0) / 100).toFixed(2)}`,
+            text: `✅ Order confirmed!\n\nOrder ID: ${order_id}\nOrder: $${(orderAmount / 100).toFixed(2)}\nService fee: $${(svcFee / 100).toFixed(2)}\nTotal debited: $${((orderAmount + svcFee) / 100).toFixed(2)}\nNew Wallet Balance: $${((result.newBalance ?? 0) / 100).toFixed(2)}`,
           },
         ],
       }

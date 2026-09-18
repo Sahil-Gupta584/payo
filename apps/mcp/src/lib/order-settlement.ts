@@ -1,10 +1,12 @@
 import { db, order, orderHistory, orderPaymentSession, walletHistory, user as userTable } from '@repo/db'
 import { eq, and, sql, gte } from 'drizzle-orm'
 import { submitOtpDirect } from './solari/sbi-otp.js'
+import { getServiceFeeCents } from './currency.js'
 
 export type ProcessOtpResult = {
   success: boolean
   newBalance?: number
+  serviceFeeCents?: number
   order?: typeof order.$inferSelect
   error?: string
 }
@@ -50,10 +52,12 @@ export async function processOrderOtpPayment({
     where: eq(userTable.id, userId),
   })
   const currentBalance = freshUser?.balance ?? 0
-  if (currentBalance < existing.amount) {
+  const serviceFeeCents = getServiceFeeCents(existing.amount)
+  const totalDue = existing.amount + serviceFeeCents
+  if (currentBalance < totalDue) {
     return {
       success: false,
-      error: `Insufficient wallet balance. Have $${(currentBalance / 100).toFixed(2)}, need $${(existing.amount / 100).toFixed(2)}. Please top up your wallet.`,
+      error: `Insufficient wallet balance. Have $${(currentBalance / 100).toFixed(2)}, need $${(totalDue / 100).toFixed(2)} (order $${(existing.amount / 100).toFixed(2)} + $${(serviceFeeCents / 100).toFixed(2)} service fee). Please top up your wallet.`,
     }
   }
 
@@ -82,8 +86,8 @@ export async function processOrderOtpPayment({
       // Atomic debit with gte guard to prevent race conditions & negative balances
       const [debited] = await tx
         .update(userTable)
-        .set({ balance: sql`${userTable.balance} - ${existing.amount}` })
-        .where(and(eq(userTable.id, userId), gte(userTable.balance, existing.amount)))
+        .set({ balance: sql`${userTable.balance} - ${totalDue}` })
+        .where(and(eq(userTable.id, userId), gte(userTable.balance, totalDue)))
         .returning()
 
       if (!debited) {
@@ -95,6 +99,15 @@ export async function processOrderOtpPayment({
         amount: existing.amount,
         type: 'debit',
         description: `Order ${existing.productName}`,
+        balanceAfter: debited.balance! + serviceFeeCents,
+        referenceId: orderId,
+      })
+
+      await tx.insert(walletHistory).values({
+        userId,
+        amount: serviceFeeCents,
+        type: 'debit',
+        description: `Service fee - ${existing.productName}`,
         balanceAfter: debited.balance,
         referenceId: orderId,
       })
@@ -112,6 +125,7 @@ export async function processOrderOtpPayment({
     return {
       success: true,
       newBalance: updatedUser.balance ?? 0,
+      serviceFeeCents,
       order: existing,
     }
   } catch (err: any) {
