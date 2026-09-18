@@ -282,12 +282,22 @@ function ApiKeysTab() {
     }),
   )
 
+  const [copiedClaudeCli, setCopiedClaudeCli] = useState(false)
+
   const copyOpencode = (key: string) => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://payo.so'
-    const snippet = `opencode mcp add payo --url ${origin}/mcp --header "Authorization=Bearer ${key}"`
+    const snippet = `opencode mcp add payo --url ${origin}/mcp --header "Authorization=Bearer ${key}" --global`
     navigator.clipboard.writeText(snippet)
     setCopiedKey(key)
     setTimeout(() => setCopiedKey(null), 2000)
+  }
+
+  const copyClaudeCli = (key: string) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://payo.so'
+    const snippet = `claude mcp add --transport http payo ${origin}/mcp --header "Authorization: Bearer ${key}" --scope user`
+    navigator.clipboard.writeText(snippet)
+    setCopiedClaudeCli(true)
+    setTimeout(() => setCopiedClaudeCli(false), 2000)
   }
 
   const copyClaudeJson = (key: string) => {
@@ -362,7 +372,16 @@ function ApiKeysTab() {
                   onClick={() => copyOpencode(newKey)}
                 >
                   <Copy className="mr-1.5 h-3.5 w-3.5" />
-                  {copiedKey === newKey ? 'Copied CLI Command!' : 'Copy OpenCode CLI Command'}
+                  {copiedKey === newKey ? 'Copied OpenCode CLI!' : 'Copy OpenCode CLI (--global)'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-emerald-300 bg-white text-emerald-800 hover:bg-emerald-100/70"
+                  onClick={() => copyClaudeCli(newKey)}
+                >
+                  <Copy className="mr-1.5 h-3.5 w-3.5" />
+                  {copiedClaudeCli ? 'Copied Claude CLI!' : 'Copy Claude Code CLI (--scope user)'}
                 </Button>
                 <Button
                   size="sm"
@@ -428,16 +447,34 @@ function ApiKeysTab() {
         </CardContent>
       </Card>
 
-      {/* Claude Desktop Config Instructions */}
+      {/* Client Setup Instructions */}
       <Card variant="secondary">
         <CardHeader>
-          <CardTitle className="text-sm font-semibold">Claude Desktop Configuration</CardTitle>
+          <CardTitle className="text-sm font-semibold">Agent & Client Setup</CardTitle>
           <CardDescription>
-            Add this to your <code className="text-xs">claude_desktop_config.json</code>:
+            Install Payo MCP globally across your agent workflows.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <pre className="overflow-x-auto rounded-lg border border-border bg-muted/60 p-4 font-mono text-xs text-foreground leading-relaxed">{`{
+        <CardContent className="space-y-4">
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+              OpenCode CLI (Global)
+            </p>
+            <pre className="overflow-x-auto rounded-lg border border-border bg-muted/60 p-3 font-mono text-xs text-foreground leading-relaxed">{`opencode mcp add payo --url ${typeof window !== 'undefined' ? window.location.origin : 'https://payo.so'}/mcp --header "Authorization=Bearer YOUR_API_KEY" --global`}</pre>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+              Claude Code CLI (Global)
+            </p>
+            <pre className="overflow-x-auto rounded-lg border border-border bg-muted/60 p-3 font-mono text-xs text-foreground leading-relaxed">{`claude mcp add --transport http payo ${typeof window !== 'undefined' ? window.location.origin : 'https://payo.so'}/mcp --header "Authorization: Bearer YOUR_API_KEY" --scope user`}</pre>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+              Claude Desktop (<code className="lowercase">claude_desktop_config.json</code>)
+            </p>
+            <pre className="overflow-x-auto rounded-lg border border-border bg-muted/60 p-3 font-mono text-xs text-foreground leading-relaxed">{`{
   "mcpServers": {
     "payo": {
       "type": "http",
@@ -448,6 +485,7 @@ function ApiKeysTab() {
     }
   }
 }`}</pre>
+          </div>
         </CardContent>
       </Card>
     </div>

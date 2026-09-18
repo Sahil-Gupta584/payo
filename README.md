@@ -73,10 +73,14 @@ npm run build
 npm run check-types      # tsc --noEmit
 ```
 
-## MCP install
+## MCP install (Global)
 
 ```bash
-opencode mcp add payo --url https://your-app.vercel.app/mcp --header "Authorization=Bearer YOUR_API_KEY"
+# OpenCode CLI (Global)
+opencode mcp add payo --url https://your-app.vercel.app/mcp --header "Authorization=Bearer YOUR_API_KEY" --global
+
+# Claude Code CLI (Global)
+claude mcp add --transport http payo https://your-app.vercel.app/mcp --header "Authorization: Bearer YOUR_API_KEY" --scope user
 ```
 
 ## Invite-only access

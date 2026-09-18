@@ -1,0 +1,27 @@
+zerops:
+  - setup: mcp
+    build:
+      base: nodejs@22
+      buildCommands:
+        - npm install -w @payo/mcp -w @repo/db --include-workspace-root
+        - npm --prefix apps/mcp run build
+      deployFiles:
+        - apps/mcp/dist
+        - apps/mcp/package.json
+        - node_modules
+      cache:
+        - node_modules
+    run:
+      base: nodejs@22
+      ports:
+        - port: 4000
+          httpSupport: true
+      envVariables:
+        PORT: 4000
+      start: node apps/mcp/dist/index.js
+      healthCheck:
+        httpGet:
+          port: 4000
+          path: /health
+        execPeriod: 15
+        failureTimeout: 60

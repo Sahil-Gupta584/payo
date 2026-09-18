@@ -72,10 +72,14 @@ npm run lint             # lint
 | `initiate_order` | Places order — checks wallet, runs automation, returns OTP page |
 | `list_orders` | Lists user's recent orders |
 
-## MCP install (Claude Desktop)
+## MCP install (Global)
 
 ```bash
-opencode mcp add payo --url https://mcp.yourdomain.com/mcp --header "Authorization=Bearer YOUR_API_KEY"
+# OpenCode CLI (Global)
+opencode mcp add payo --url https://mcp.yourdomain.com/mcp --header "Authorization=Bearer YOUR_API_KEY" --global
+
+# Claude Code CLI (Global)
+claude mcp add --transport http payo https://mcp.yourdomain.com/mcp --header "Authorization: Bearer YOUR_API_KEY" --scope user
 ```
 
 ## Invite-only access
