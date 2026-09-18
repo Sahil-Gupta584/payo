@@ -100,10 +100,11 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left w-full whitespace-nowrap ${active
-          ? 'bg-white text-foreground font-semibold shadow-xs border border-border'
-          : 'text-muted-foreground hover:bg-white/70 hover:text-foreground'
-        }`}
+      className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all text-left w-full whitespace-nowrap active:scale-[0.99] ${
+        active
+          ? 'bg-card text-foreground font-semibold shadow-2xs border border-border ring-1 ring-foreground/5'
+          : 'text-muted-foreground border border-transparent hover:bg-card/70 hover:border-border/70 hover:text-foreground hover:ring-1 hover:ring-foreground/[0.04]'
+      }`}
     >
       {icon}
       <span>{label}</span>
@@ -748,10 +749,10 @@ function AddressForm({
                 key={preset}
                 type="button"
                 onClick={() => setLabel(preset)}
-                className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
+                className={`rounded-md px-2 py-0.5 text-xs font-medium transition-all active:scale-[0.97] ${
                   label.toLowerCase() === preset.toLowerCase()
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground hover:text-foreground'
+                    ? 'bg-primary text-primary-foreground border border-primary/20 ring-1 ring-primary/30 shadow-2xs'
+                    : 'bg-secondary/60 text-muted-foreground border border-border/60 hover:border-border hover:text-foreground hover:ring-1 hover:ring-foreground/5'
                 }`}
               >
                 {preset}

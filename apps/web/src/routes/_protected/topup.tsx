@@ -107,10 +107,10 @@ function TopupPage() {
                         key={amt}
                         type="button"
                         onClick={() => setDollarAmount(amt)}
-                        className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-all ${
+                        className={`rounded-xl border px-3 py-2 text-sm font-semibold transition-all active:scale-[0.98] ${
                           selected
-                            ? 'border-primary bg-primary/15 text-primary shadow-sm'
-                            : 'border-border/60 bg-secondary/50 text-foreground hover:bg-secondary hover:border-border'
+                            ? 'border-primary bg-primary/15 text-primary ring-1 ring-primary/30 shadow-xs'
+                            : 'border-border/70 bg-card text-foreground ring-1 ring-foreground/[0.03] hover:bg-secondary/70 hover:border-border hover:ring-foreground/10 shadow-2xs'
                         }`}
                       >
                         ${amt}
