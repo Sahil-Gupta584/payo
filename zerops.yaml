@@ -1,5 +1,5 @@
 zerops:
-  - setup: mcp
+  - setup: nodejs
     build:
       base: nodejs@22
       buildCommands:
