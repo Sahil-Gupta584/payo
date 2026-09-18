@@ -98,16 +98,20 @@ export function createServer(user: User | null) {
         userLat ?? 19.1851092,
         userLon ?? 72.9949806,
       )
-      const results = products.slice(0, effectiveLimit).map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        brand: p.brand,
-        platform: p.platform?.name?.toLowerCase() === 'swiggy' ? 'instamart' : (p.platform?.name?.toLowerCase() || 'instamart'),
-        price: `$${p.offer_price}`,
-        mrp: `$${p.mrp}`,
-        quantity: p.quantity,
-        available: p.available,
-      }))
+      const { inrToUsdCents } = await import('./lib/currency.js')
+      const results = await Promise.all(
+        products.slice(0, effectiveLimit).map(async (p: any) => ({
+          id: p.id,
+          name: p.name,
+          brand: p.brand,
+          platform: p.platform?.name?.toLowerCase() === 'swiggy' ? 'instamart' : (p.platform?.name?.toLowerCase() || 'instamart'),
+          price_inr: p.offer_price,
+          price_usd_cents: await inrToUsdCents(Number(p.offer_price) || 0),
+          mrp_inr: p.mrp,
+          quantity: p.quantity,
+          available: p.available,
+        })),
+      )
       return { content: [{ type: 'text' as const, text: JSON.stringify(results, null, 2) }] }
     },
   )
@@ -162,7 +166,7 @@ export function createServer(user: User | null) {
         product_id: z.string().trim().describe('id from search_products'),
         product_name: z.string().trim(),
         platform: z.enum(['instamart', 'blinkit']).default('instamart').describe('Platform: instamart or blinkit (default instamart)'),
-        amount: z.number().int().positive().describe('price in cents ($1 = 100)'),
+        amount: z.number().int().positive().describe('price in USD cents from search_products.price_usd_cents ($1 = 100 cents)'),
         payment_method: z.enum(['card', 'cod']).default('card').describe('card = charge wallet via card (requires OTP), cod = cash on delivery (no wallet needed)'),
         address_id: z.string().trim().describe('ID of saved address from list_addresses to deliver to (required)'),
       },
