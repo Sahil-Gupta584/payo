@@ -13,7 +13,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as BgTestRouteImport } from './routes/bg-test'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as McpRouteImport } from './routes/mcp'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
 import { Route as ProtectedSettingsRouteImport } from './routes/_protected/settings'
 import { Route as ProtectedTopupRouteImport } from './routes/_protected/topup'
@@ -39,11 +38,6 @@ const BgTestRoute = BgTestRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const McpRoute = McpRouteImport.update({
-  id: '/mcp',
-  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProtectedDashboardRoute = ProtectedDashboardRouteImport.update({
@@ -86,7 +80,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/bg-test': typeof BgTestRoute
   '/login': typeof LoginRoute
-  '/mcp': typeof McpRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/settings': typeof ProtectedSettingsRoute
   '/topup': typeof ProtectedTopupRoute
@@ -99,7 +92,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/bg-test': typeof BgTestRoute
   '/login': typeof LoginRoute
-  '/mcp': typeof McpRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/settings': typeof ProtectedSettingsRoute
   '/topup': typeof ProtectedTopupRoute
@@ -114,7 +106,6 @@ export interface FileRoutesById {
   '/_protected': typeof ProtectedRouteWithChildren
   '/bg-test': typeof BgTestRoute
   '/login': typeof LoginRoute
-  '/mcp': typeof McpRoute
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/_protected/settings': typeof ProtectedSettingsRoute
   '/_protected/topup': typeof ProtectedTopupRoute
@@ -129,7 +120,6 @@ export interface FileRouteTypes {
     | '/'
     | '/bg-test'
     | '/login'
-    | '/mcp'
     | '/dashboard'
     | '/settings'
     | '/topup'
@@ -142,7 +132,6 @@ export interface FileRouteTypes {
     | '/'
     | '/bg-test'
     | '/login'
-    | '/mcp'
     | '/dashboard'
     | '/settings'
     | '/topup'
@@ -156,7 +145,6 @@ export interface FileRouteTypes {
     | '/_protected'
     | '/bg-test'
     | '/login'
-    | '/mcp'
     | '/_protected/dashboard'
     | '/_protected/settings'
     | '/_protected/topup'
@@ -171,7 +159,6 @@ export interface RootRouteChildren {
   ProtectedRoute: typeof ProtectedRouteWithChildren
   BgTestRoute: typeof BgTestRoute
   LoginRoute: typeof LoginRoute
-  McpRoute: typeof McpRoute
   ApiSplatRoute: typeof ApiSplatRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiRpcSplatRoute: typeof ApiRpcSplatRoute
@@ -206,13 +193,6 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mcp': {
-      id: '/mcp'
-      path: '/mcp'
-      fullPath: '/mcp'
-      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_protected/dashboard': {
@@ -288,7 +268,6 @@ const rootRouteChildren: RootRouteChildren = {
   ProtectedRoute: ProtectedRouteWithChildren,
   BgTestRoute: BgTestRoute,
   LoginRoute: LoginRoute,
-  McpRoute: McpRoute,
   ApiSplatRoute: ApiSplatRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiRpcSplatRoute: ApiRpcSplatRoute,

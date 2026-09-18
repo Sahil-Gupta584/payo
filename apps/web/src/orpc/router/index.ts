@@ -3,7 +3,7 @@ import { getWalletBalance, topupWallet, createWalletCheckout, getWalletHistory }
 import { checkInvite } from './invite'
 import { listApiKeys, createApiKey, revokeApiKey } from './apiKeys'
 import { joinWaitlist } from './waitlist'
-import { listAddresses, createAddress, deleteAddress } from './addresses'
+import { listAddresses, createAddress, updateAddress, deleteAddress } from './addresses'
 import { listOrders, submitOrderOtp } from './orders'
 import { updateName } from './user'
 
@@ -22,6 +22,7 @@ export default {
   addresses: {
     list: listAddresses,
     create: createAddress,
+    update: updateAddress,
     delete: deleteAddress,
   },
   orders: {

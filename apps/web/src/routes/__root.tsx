@@ -67,6 +67,20 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     ],
   }),
   shellComponent: RootDocument,
+  errorComponent: ({ error }: { error?: any }) => {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
+        <h1 className="text-lg font-semibold text-neutral-900">Something went wrong</h1>
+        <p className="mt-1 text-sm text-neutral-500">{(error as any)?.message || 'An unexpected error occurred.'}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 rounded-md bg-neutral-900 px-3.5 py-2 text-sm font-medium text-white shadow-xs hover:bg-neutral-800"
+        >
+          Try again
+        </button>
+      </div>
+    )
+  },
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
@@ -75,7 +89,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         {children}
         <TanStackDevtools
           config={{

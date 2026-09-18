@@ -4,9 +4,17 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "dev:w": "turbo run dev --filter=web",
+    "dev:m": "turbo run dev --filter=@payo/mcp",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types"
+    "check-types": "turbo run check-types",
+    "generate-routes": "turbo run generate-routes",
+    "db:generate": "turbo run db:generate",
+    "db:migrate": "turbo run db:migrate",
+    "db:studio": "turbo run db:studio",
+    "db:push": "turbo run db:push",
+    "db:pull": "turbo run db:pull"
   },
   "devDependencies": {
     "prettier": "3.9.6",

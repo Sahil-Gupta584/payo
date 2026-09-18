@@ -1,39 +1,60 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import { createFileRoute } from '@tanstack/react-router'
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
+import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
-import { handleMcpRequest } from '#/utils/mcp-handler'
-import { auth } from '#/lib/auth'
-import { db } from '#/db'
-import { apiKey, user as userTable, order, orderHistory, orderPaymentSession, userAddress } from '#/db/schema'
-import { eq, desc, and } from 'drizzle-orm'
+import { db, apiKey, user as userTable, order, orderHistory, orderPaymentSession, userAddress, session as sessionTable, type User } from '@repo/db'
+import { eq, desc, and, gte } from 'drizzle-orm'
 import { createHash } from 'node:crypto'
-import { instamartCheckout } from '#/lib/solari/instamart'
-import { blinkitCheckout } from '#/lib/solari/blinkit'
-import { searchProducts, verifyProductPrice } from '#/lib/quickcommerce'
-import { phoneSchema, pincodeSchema, latitudeSchema, longitudeSchema } from '#/orpc/router/addresses'
-import { processOrderOtpPayment } from '#/lib/order-settlement'
-import { env } from '#/env'
+import { instamartCheckout } from './lib/solari/instamart.js'
+import { blinkitCheckout } from './lib/solari/blinkit.js'
+import { searchProducts, verifyProductPrice } from './lib/quickcommerce.js'
+import { processOrderOtpPayment } from './lib/order-settlement.js'
+import { env } from './env.js'
 
-type ResolvedUser = Awaited<ReturnType<typeof resolveUser>>
+export async function resolveUserFromAuth(authHeader?: string | null, cookieHeader?: string | null): Promise<User | null> {
+  let token = authHeader?.replace(/^Bearer\s+/i, '').trim()
 
-async function resolveUser(request: Request) {
-  const session = await auth.api.getSession({ headers: request.headers })
-  if (session?.user) return session.user
+  if (!token && cookieHeader) {
+    const cookies = Object.fromEntries(
+      cookieHeader.split('; ').map((c) => {
+        const [k, ...v] = c.split('=')
+        return [k, decodeURIComponent(v.join('='))]
+      }),
+    )
+    token = cookies['better-auth.session_token'] || cookies['session_token']
+  }
 
-  const token = request.headers.get('authorization')?.replace('Bearer ', '').trim()
   if (!token) return null
 
+  // 1. Try API key hash
   const hash = createHash('sha256').update(token).digest('hex')
-  const [key] = await db.select({ userId: apiKey.userId }).from(apiKey).where(eq(apiKey.keyHash, hash)).limit(1)
-  if (!key) return null
+  const [keyRow] = await db
+    .select({ userId: apiKey.userId })
+    .from(apiKey)
+    .where(eq(apiKey.keyHash, hash))
+    .limit(1)
 
-  return db.query.user.findFirst({ where: (u, { eq }) => eq(u.id, key.userId) }) ?? null
+  if (keyRow) {
+    await db.update(apiKey).set({ lastUsedAt: new Date() }).where(eq(apiKey.keyHash, hash)).catch(() => {})
+    const foundUser = await db.query.user.findFirst({ where: (u, { eq }) => eq(u.id, keyRow.userId) })
+    return foundUser ?? null
+  }
+
+  // 2. Try session token
+  const sess = await db.query.session.findFirst({
+    where: and(eq(sessionTable.token, token), gte(sessionTable.expiresAt, new Date())),
+  })
+  if (sess) {
+    const foundUser = await db.query.user.findFirst({ where: (u, { eq }) => eq(u.id, sess.userId) })
+    return foundUser ?? null
+  }
+
+  return null
 }
 
-function createServer(user: ResolvedUser) {
-  const server = new McpServer({ name: 'payo', version: '0.1.0' })
-
-  const unauthed = { content: [{ type: 'text' as const, text: 'Error: unauthorized' }], isError: true as const }
+export function createServer(user: User | null) {
+  const server = new McpServer({ name: 'payo', version: '0.2.0' })
+  const unauthed = { content: [{ type: 'text' as const, text: 'Error: unauthorized. Please provide a valid Authorization: Bearer <API_KEY>.' }], isError: true as const }
 
   server.registerTool(
     'search_products',
@@ -50,7 +71,6 @@ function createServer(user: ResolvedUser) {
     async ({ query, platform, limit, address_id }) => {
       const effectiveLimit = limit ?? 15
 
-      // Dynamically locate user's local dark store using their saved delivery address
       let userLat: number | undefined
       let userLon: number | undefined
       if (user) {
@@ -88,7 +108,6 @@ function createServer(user: ResolvedUser) {
         quantity: p.quantity,
         available: p.available,
       }))
-      console.log(JSON.stringify({ query, platform, limit: effectiveLimit, count: results.length }))
       return { content: [{ type: 'text' as const, text: JSON.stringify(results, null, 2) }] }
     },
   )
@@ -121,9 +140,9 @@ function createServer(user: ResolvedUser) {
         orderBy: [desc(userAddress.createdAt)],
       })
       if (addresses.length === 0) {
-        return { content: [{ type: 'text' as const, text: 'No delivery addresses saved yet. Use save_address to add one.' }] }
+        return { content: [{ type: 'text' as const, text: 'No delivery addresses saved yet. Please add one in the Payo dashboard under Settings → Delivery Addresses, then try again.' }] }
       }
-      const formatted = addresses.map(a => ({
+      const formatted = addresses.map((a) => ({
         id: a.id,
         label: a.label,
         recipient_name: a.recipientName,
@@ -131,54 +150,6 @@ function createServer(user: ResolvedUser) {
         address: [a.line1, a.line2, a.city, a.state, a.pincode].filter(Boolean).join(', '),
       }))
       return { content: [{ type: 'text' as const, text: JSON.stringify(formatted, null, 2) }] }
-    },
-  )
-
-  server.registerTool(
-    'save_address',
-    {
-      title: 'Save delivery address',
-      description: 'Save a new delivery address for the user (e.g. Home, Office) with recipient name and mobile number for the delivery driver.',
-      inputSchema: {
-        label: z.string().trim().default('Home').describe('Label for this address: e.g. Home, Office, Parents'),
-        recipient_name: z.string().trim().describe('Full name of the person receiving the order'),
-        recipient_phone: phoneSchema.describe('Mobile number for the delivery driver to call'),
-        line1: z.string().trim().describe('House/flat number, building name, street'),
-        line2: z.string().trim().optional().describe('Area, colony, locality'),
-        landmark: z.string().trim().optional().describe('Nearby landmark'),
-        city: z.string().trim().describe('City (e.g. Navi Mumbai, Thane, Mumbai, Bangalore)'),
-        state: z.string().trim().describe('State (e.g. Maharashtra, Karnataka)'),
-        pincode: pincodeSchema.describe('6-digit postal pincode'),
-        latitude: latitudeSchema.describe('Latitude coordinates (e.g. "19.1851092")'),
-        longitude: longitudeSchema.describe('Longitude coordinates (e.g. "72.9949806")'),
-      },
-    },
-    async (args) => {
-      if (!user) return unauthed
-
-      const [newAddr] = await db.insert(userAddress).values({
-        userId: user.id,
-        label: args.label || 'Home',
-        recipientName: args.recipient_name,
-        recipientPhone: args.recipient_phone,
-        line1: args.line1,
-        line2: args.line2 ?? null,
-        landmark: args.landmark ?? null,
-        city: args.city,
-        state: args.state,
-        pincode: args.pincode,
-        latitude: args.latitude,
-        longitude: args.longitude,
-      }).returning()
-
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: `✅ Address saved!\n\nID: ${newAddr?.id}\nLabel: ${newAddr?.label}\nRecipient: ${newAddr?.recipientName} (${newAddr?.recipientPhone})\nAddress: ${[newAddr?.line1, newAddr?.line2, newAddr?.city, newAddr?.pincode].filter(Boolean).join(', ')}`,
-          },
-        ],
-      }
     },
   )
 
@@ -202,7 +173,6 @@ function createServer(user: ResolvedUser) {
       const targetPlatform = platform ?? 'instamart'
       const pm = payment_method ?? 'card'
 
-      // Resolve delivery address from database
       const chosenAddress = await db.query.userAddress.findFirst({
         where: and(eq(userAddress.userId, user.id), eq(userAddress.id, address_id)),
       })
@@ -212,14 +182,14 @@ function createServer(user: ResolvedUser) {
           content: [
             {
               type: 'text' as const,
-              text: `Error: Address with ID '${address_id}' not found. Please use list_addresses to find a valid address ID or save_address to save a new one.`,
+              text: `Error: Address with ID '${address_id}' not found. Please use list_addresses to find a valid address ID, or add one in the Payo dashboard under Settings → Delivery Addresses.`,
             },
           ],
           isError: true,
         }
       }
 
-      // Verify product price & live availability via QuickCommerce API
+      // Live verification of price and stock
       const lat = chosenAddress.latitude ? parseFloat(chosenAddress.latitude) : 19.1851092
       const lon = chosenAddress.longitude ? parseFloat(chosenAddress.longitude) : 72.9949806
       const priceVerification = await verifyProductPrice(
@@ -243,13 +213,11 @@ function createServer(user: ResolvedUser) {
         }
       }
 
-      // Use authoritative verified price in cents if available, otherwise fallback to provided amount
       const finalAmount =
         priceVerification.verified && priceVerification.priceCents > 0
           ? priceVerification.priceCents
           : amount
 
-      // Strict wallet balance check for card payments
       if (pm === 'card') {
         const freshUser = await db.query.user.findFirst({ where: eq(userTable.id, user.id) })
         const balance = freshUser?.balance ?? 0
@@ -258,7 +226,7 @@ function createServer(user: ResolvedUser) {
             content: [
               {
                 type: 'text' as const,
-                text: `❌ Insufficient wallet balance.\n\nVerified Price: $${(finalAmount / 100).toFixed(2)}\nWallet Balance: $${(balance / 100).toFixed(2)}\nShortfall: $${((finalAmount - balance) / 100).toFixed(2)}\n\nPlease top up your wallet at /topup before initializing this order.`,
+                text: `❌ Insufficient wallet balance.\n\nVerified Price: $${(finalAmount / 100).toFixed(2)}\nWallet Balance: $${(balance / 100).toFixed(2)}\nShortfall: $${((finalAmount - balance) / 100).toFixed(2)}\n\nPlease top up your wallet before initializing this order.`,
               },
             ],
             isError: true,
@@ -304,11 +272,11 @@ function createServer(user: ResolvedUser) {
       if (pm === 'cod') {
         await db.update(order).set({ status: 'confirmed' }).where(eq(order.id, orderId))
         await db.insert(orderHistory).values({ id: orderId as any, userId: user.id, platform: targetPlatform, productId: product_id, productName: product_name, amount: finalAmount, status: 'confirmed', paymentMethod: pm })
-        const deliveryInfo = chosenAddress ? `\nDelivering to: ${chosenAddress.label} (${chosenAddress.recipientName} - ${chosenAddress.recipientPhone})\nAddress: ${chosenAddress.line1}, ${chosenAddress.city}` : ''
+        const deliveryInfo = `\nDelivering to: ${chosenAddress.label} (${chosenAddress.recipientName} - ${chosenAddress.recipientPhone})\nAddress: ${chosenAddress.line1}, ${chosenAddress.city}`
         return { content: [{ type: 'text' as const, text: `✅ COD order placed!\n\nOrder ID: ${orderId}\nPlatform: ${targetPlatform}\nProduct: ${product_name} ($${(finalAmount / 100).toFixed(2)})${deliveryInfo}\nPayment: Cash on Delivery — pay when the delivery arrives.` }] }
       }
 
-      // card — awaiting OTP
+      // Card — awaiting OTP
       await db.update(order).set({ status: 'awaiting_otp' }).where(eq(order.id, orderId))
       if (result.sbiFields) {
         await db.insert(orderPaymentSession).values({
@@ -321,7 +289,7 @@ function createServer(user: ResolvedUser) {
         })
         await db.insert(orderHistory).values({ id: orderId as any, userId: user.id, platform: targetPlatform, productId: product_id, productName: product_name, amount: finalAmount, status: 'awaiting_otp', paymentMethod: pm })
       }
-      const deliveryInfo = chosenAddress ? `\nDelivering to: ${chosenAddress.label} (${chosenAddress.recipientName} - ${chosenAddress.recipientPhone})\nAddress: ${chosenAddress.line1}, ${chosenAddress.city}` : ''
+      const deliveryInfo = `\nDelivering to: ${chosenAddress.label} (${chosenAddress.recipientName} - ${chosenAddress.recipientPhone})\nAddress: ${chosenAddress.line1}, ${chosenAddress.city}`
       return { content: [{ type: 'text' as const, text: `Order initiated on ${targetPlatform} — OTP sent to your mobile number.\n\nOrder ID: ${orderId}\nProduct: ${product_name} ($${(finalAmount / 100).toFixed(2)})${deliveryInfo}\n\nTo complete the booking, please share the 6-digit OTP and I will confirm the order via confirm_order.` }] }
     },
   )
@@ -339,13 +307,12 @@ function createServer(user: ResolvedUser) {
     async ({ query, limit }) => {
       if (!user) return unauthed
       const effectiveLimit = limit ?? 10
-      // prefer orderHistory (clean history), fallback to order
       const rows = query
         ? await db.query.orderHistory.findMany({
-          where: (o, { and, eq: e, ilike }) => and(e(o.userId, user.id), ilike(o.productName, `%${query}%`)),
-          orderBy: desc(orderHistory.createdAt),
-          limit: effectiveLimit,
-        })
+            where: (o, { and: a, eq: e, ilike }) => a(e(o.userId, user.id), ilike(o.productName, `%${query}%`)),
+            orderBy: desc(orderHistory.createdAt),
+            limit: effectiveLimit,
+          })
         : await db.query.orderHistory.findMany({ where: eq(orderHistory.userId, user.id), orderBy: desc(orderHistory.createdAt), limit: effectiveLimit })
       const compact = rows.map((r: any) => ({ id: r.id, productId: r.productId, productName: r.productName, amount: `$${(r.amount / 100).toFixed(2)}`, amountCents: r.amount, status: r.status, createdAt: r.createdAt }))
       return { content: [{ type: 'text' as const, text: JSON.stringify(compact, null, 2) }] }
@@ -390,13 +357,27 @@ function createServer(user: ResolvedUser) {
   return server
 }
 
-export const Route = createFileRoute('/mcp')({
-  server: {
-    handlers: {
-      POST: async ({ request }) => {
-        const user = await resolveUser(request)
-        return handleMcpRequest(request, createServer(user))
-      },
-    },
-  },
-})
+export async function handleMcpPayload(jsonRpcRequest: JSONRPCMessage, user: User | null): Promise<JSONRPCMessage> {
+  const server = createServer(user)
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
+
+  const responsePromise = new Promise<JSONRPCMessage>((resolve) => {
+    clientTransport.onmessage = (message: JSONRPCMessage) => resolve(message)
+  })
+
+  await server.connect(serverTransport)
+  await clientTransport.start()
+  await serverTransport.start()
+  await clientTransport.send(jsonRpcRequest)
+
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('MCP tool execution timed out after 120s')), 120_000),
+  )
+
+  const responseData = await Promise.race([responsePromise, timeoutPromise])
+
+  await clientTransport.close()
+  await serverTransport.close()
+
+  return responseData
+}

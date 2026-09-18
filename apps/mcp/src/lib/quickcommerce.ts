@@ -1,4 +1,5 @@
-import { env } from '#/env'
+import { env } from '../env.js'
+import { inrToUsdCents } from './currency.js'
 
 const BASE = 'https://api.quickcommerceapi.com/v1'
 
@@ -99,8 +100,6 @@ export async function getItemDetail(
     return { success: false, item: null }
   }
 }
-
-import { inrToUsdCents } from '#/lib/currency'
 
 /**
  * Verifies the live price and stock availability of a product via QuickCommerce API

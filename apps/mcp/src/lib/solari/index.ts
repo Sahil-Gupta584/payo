@@ -1,6 +1,6 @@
 import { Solari } from '@solarisdk/browser'
 import type { Page } from 'patchright-core'
-import { env } from '#/env'
+import { env } from '../../env.js'
 
 export async function launchBrowser(profileId: string) {
   const client = new Solari({ apiKey: env.SOLARI_API_KEY, baseUrl: 'https://api.getsolari.com' })

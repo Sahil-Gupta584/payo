@@ -1,14 +1,37 @@
 import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "#/lib/utils"
 
-function Card({ className, ...props }: React.ComponentProps<"div">) {
+const cardVariants = cva(
+  "flex flex-col gap-6 rounded-xl border py-6 shadow-[0_1px_3px_0_rgba(0,0,0,0.04),inset_0_1px_0_0_rgba(255,255,255,0.06)] ring-1 ring-black/[0.03] transition-[border-color,box-shadow]",
+  {
+    variants: {
+      variant: {
+        default: "border-border/80 bg-card text-card-foreground",
+        muted: "border-border/60 bg-muted/40 text-card-foreground",
+        secondary: "border-border/60 bg-secondary/50 text-secondary-foreground",
+        outline: "border-border/80 bg-transparent text-card-foreground shadow-none ring-0",
+        warning: "border-amber-200 bg-amber-50/70 text-amber-950 ring-amber-500/10",
+        success: "border-emerald-200 bg-emerald-50/70 text-emerald-950 ring-emerald-500/10",
+        destructive: "border-destructive/20 bg-destructive/5 text-destructive ring-destructive/10",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+)
+
+function Card({
+  className,
+  variant = "default",
+  ...props
+}: React.ComponentProps<"div"> & VariantProps<typeof cardVariants>) {
   return (
     <div
       data-slot="card"
-      className={cn(
-        "flex flex-col gap-6 rounded-xl border border-border/80 bg-card py-6 text-card-foreground shadow-[0_1px_3px_0_rgba(0,0,0,0.04),inset_0_1px_0_0_rgba(255,255,255,0.06)] ring-1 ring-black/[0.03] transition-[border-color,box-shadow] dark:border-border/70 dark:ring-white/[0.06] dark:shadow-[0_1px_3px_0_rgba(0,0,0,0.3),inset_0_1px_0_0_rgba(255,255,255,0.08)]",
-        className
-      )}
+      data-variant={variant}
+      className={cn(cardVariants({ variant }), className)}
       {...props}
     />
   )
@@ -82,6 +105,7 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
 
 export {
   Card,
+  cardVariants,
   CardHeader,
   CardFooter,
   CardTitle,

@@ -94,19 +94,25 @@ function ProtectedLayout() {
 
               <DropdownMenuSeparator />
 
-              <DropdownMenuItem onClick={() => router.navigate({ to: '/dashboard' })}>
-                <LayoutDashboard className="h-4 w-4" />
-                Dashboard
+              <DropdownMenuItem asChild>
+                <Link to="/dashboard">
+                  <LayoutDashboard className="h-4 w-4" />
+                  Dashboard
+                </Link>
               </DropdownMenuItem>
 
-              <DropdownMenuItem onClick={() => router.navigate({ to: '/topup' as any })}>
-                <Wallet className="h-4 w-4" />
-                Top up
+              <DropdownMenuItem asChild>
+                <Link to="/topup">
+                  <Wallet className="h-4 w-4" />
+                  Top up
+                </Link>
               </DropdownMenuItem>
 
-              <DropdownMenuItem onClick={() => router.navigate({ to: '/settings' })}>
-                <Settings className="h-4 w-4" />
-                Settings
+              <DropdownMenuItem asChild>
+                <Link to="/settings">
+                  <Settings className="h-4 w-4" />
+                  Settings
+                </Link>
               </DropdownMenuItem>
 
               <DropdownMenuSeparator />

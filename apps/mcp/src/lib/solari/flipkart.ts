@@ -1,5 +1,5 @@
 import { launchBrowser, step } from './index.js'
-import { env } from '#/env'
+import { env } from '../../env.js'
 
 const FLIPKART_PROFILE_ID = env.SOLARI_PROFILE_ID
 

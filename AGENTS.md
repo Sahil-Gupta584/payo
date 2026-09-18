@@ -5,23 +5,30 @@
 Payo is an MCP server that lets AI agents (Claude etc.) shop online on behalf of users.
 Users top up a wallet, the agent searches products and places orders via browser automation.
 
+## Architecture
+
+Monorepo using npm workspaces & Turborepo:
+- **`apps/web`**: Dashboard UI + oRPC API + Better-Auth + Dodo Payments. Deployed to Vercel (fast serverless).
+- **`apps/mcp`**: Dedicated MCP server + Solari browser automation (`@solarisdk/browser`). Deployed to long-running host / Docker / Railway (no timeouts).
+- **`packages/db`**: Shared Drizzle ORM + PostgreSQL schema & client (`@repo/db`).
+
 ## Stack
 
-- **Framework**: TanStack Start (Vite + React 19, SSR)
-- **Router**: TanStack Router — file-based at `src/routes/`. Never edit `src/routeTree.gen.ts` manually. Run `npm run generate-routes` after adding or renaming routes.
-- **Server API**: oRPC with Zod validation (`/api/rpc/*`)
-- **Database**: Drizzle ORM + PostgreSQL (Supabase). Schema at `src/db/schema.ts`. Client at `src/db/index.ts`.
+- **Dashboard / Web**: TanStack Start (Vite + React 19, SSR)
+- **Router**: TanStack Router — file-based at `apps/web/src/routes/`. Never edit `src/routeTree.gen.ts` manually. Run `npm run generate-routes` after adding or renaming routes.
+- **Server API**: oRPC with Zod validation (`/api/rpc/*`) in `apps/web`
+- **Database**: Drizzle ORM + PostgreSQL (Supabase) via `@repo/db`.
 - **Auth**: better-auth — magic link only (invite-only). Client: `#/lib/auth-client`.
-- **Browser automation**: Solari (`@solarisdk/browser`) — one file per platform under `src/lib/solari/`
-- **Product search**: QuickCommerce API (`src/lib/quickcommerce.ts`)
-- **Payments**: Dodo Payments (wallet top-up)
-- **MCP**: `@modelcontextprotocol/sdk` — endpoint at `POST /mcp`, HTTP-based, auth via session cookie or Bearer API key
+- **MCP Server**: Express + `@modelcontextprotocol/sdk` in `apps/mcp` (`POST /mcp`), auth via Bearer API key or session cookie.
+- **Browser Automation**: Solari (`@solarisdk/browser`) inside `apps/mcp/src/lib/solari/`
+- **Product Search**: QuickCommerce API (`apps/mcp/src/lib/quickcommerce.ts`)
+- **Payments**: Dodo Payments (wallet top-up in `apps/web`)
 - **UI**: shadcn/ui + Tailwind CSS v4. Light theme.
 - **Icons**: lucide-react
 
 ## Import aliases
 
-`#/*` resolves to `./src/*`. Always use `#/` for internal imports.
+`#/*` resolves to `./src/*` inside `apps/web`. Both `web` and `mcp` import `@repo/db`.
 
 ## Key conventions
 
@@ -38,7 +45,9 @@ Users top up a wallet, the agent searches products and places orders via browser
 ## Commands
 
 ```bash
-npm run dev              # start dev server on port 3000
+npm run dev              # start dev servers across all workspaces
+npm run dev:w            # start web dev server on port 3000
+npm run dev:m            # start dedicated MCP dev server on port 4000
 npm run generate-routes  # regenerate TanStack Router route tree (run after adding routes)
 npm run db:generate      # generate SQL migration files from schema changes
 npm run db:migrate       # apply pending migrations to the database
@@ -65,7 +74,7 @@ npm run lint             # lint
 ## MCP install (Claude Desktop)
 
 ```bash
-opencode mcp add payo --url https://your-app.vercel.app/mcp --header "Authorization=Bearer YOUR_API_KEY"
+opencode mcp add payo --url https://mcp.yourdomain.com/mcp --header "Authorization=Bearer YOUR_API_KEY"
 ```
 
 ## Invite-only access

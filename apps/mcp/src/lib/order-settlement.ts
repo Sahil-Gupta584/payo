@@ -1,32 +1,6 @@
-import { db } from '#/db'
-import { order, orderHistory, orderPaymentSession, walletHistory, user as userTable } from '#/db/schema'
+import { db, order, orderHistory, orderPaymentSession, walletHistory, user as userTable } from '@repo/db'
 import { eq, and, sql, gte } from 'drizzle-orm'
-export async function submitOtpDirect(
-  fields: { transactionIdentifier: string; nonce: string; timestamp: string; signature: string },
-  otp: string,
-): Promise<{ success: boolean; error?: string }> {
-  const res = await fetch('https://crqsbiacs.sbi.bank.in/acs/ajaxProcessChallenge', {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      challengeInputValue: otp,
-      transactionIdentifier: fields.transactionIdentifier,
-      nonce: fields.nonce,
-      timestamp: fields.timestamp,
-      signature: fields.signature,
-      charLimit: '6',
-      registerPasskey: 'false',
-    }).toString(),
-  })
-
-  const html = await res.text()
-
-  if (!html || html.length < 100) return { success: false, error: 'Transaction expired' }
-  if (html.toLowerCase().includes('invalid otp')) return { success: false, error: 'Invalid OTP' }
-
-  if (!html.includes('Invalid') && !html.includes('invalid')) return { success: true }
-  return { success: false, error: `Bank error: ${html.slice(0, 200)}` }
-}
+import { submitOtpDirect } from './solari/sbi-otp.js'
 
 export type ProcessOtpResult = {
   success: boolean
@@ -79,7 +53,7 @@ export async function processOrderOtpPayment({
   if (currentBalance < existing.amount) {
     return {
       success: false,
-      error: `Insufficient wallet balance. Have $${(currentBalance / 100).toFixed(2)}, need $${(existing.amount / 100).toFixed(2)}. Please top up your wallet at /topup.`,
+      error: `Insufficient wallet balance. Have $${(currentBalance / 100).toFixed(2)}, need $${(existing.amount / 100).toFixed(2)}. Please top up your wallet.`,
     }
   }
 

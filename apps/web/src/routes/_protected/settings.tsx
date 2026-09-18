@@ -22,6 +22,8 @@ import {
   Home,
   Briefcase,
   AlertCircle,
+  LocateFixed,
+  Pencil,
 } from 'lucide-react'
 
 export const Route = createFileRoute('/_protected/settings')({
@@ -99,11 +101,10 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left w-full whitespace-nowrap ${
-        active
+      className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left w-full whitespace-nowrap ${active
           ? 'bg-white text-foreground font-semibold shadow-xs border border-border'
           : 'text-muted-foreground hover:bg-white/70 hover:text-foreground'
-      }`}
+        }`}
     >
       {icon}
       <span>{label}</span>
@@ -165,7 +166,7 @@ function GeneralTab({ user }: { user: any }) {
               </Avatar>
               <div>
                 <p className="text-sm font-medium">{user.email}</p>
-                <Badge variant="outline" className="mt-1 border-emerald-500/30 bg-emerald-500/10 text-emerald-500 text-[11px]">
+                <Badge variant="outline" className="mt-1 border-emerald-300 bg-emerald-50 text-emerald-700 text-[11px] font-semibold">
                   Verified Account
                 </Badge>
               </div>
@@ -201,14 +202,14 @@ function GeneralTab({ user }: { user: any }) {
             </div>
 
             {savedSuccess && (
-              <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 p-3 text-xs font-medium text-emerald-500 border border-emerald-500/20 max-w-md">
-                <CheckCircle2 className="h-4 w-4 shrink-0" />
+              <div className="flex items-center gap-2 rounded-lg bg-emerald-50 p-3 text-xs font-medium text-emerald-800 border border-emerald-200 max-w-md">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
                 <span>Profile name updated successfully!</span>
               </div>
             )}
 
             {errorMsg && (
-              <div className="flex items-center gap-2 rounded-lg bg-red-500/10 p-3 text-xs font-medium text-red-500 border border-red-500/20 max-w-md">
+              <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-xs font-medium text-destructive border border-destructive/20 max-w-md">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 <span>{errorMsg}</span>
               </div>
@@ -228,7 +229,7 @@ function GeneralTab({ user }: { user: any }) {
         </CardContent>
       </Card>
 
-      <Card className="border-border/60">
+      <Card variant="secondary">
         <CardHeader>
           <CardTitle className="text-sm font-semibold">Account Identifier</CardTitle>
           <CardDescription>Your unique user reference for platform orders and DB records.</CardDescription>
@@ -343,19 +344,19 @@ function ApiKeysTab() {
 
           {/* New Key Reveal Banner */}
           {newKey && (
-            <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/30 p-4">
-              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400">
-                <CheckCircle2 className="h-4 w-4" />
+            <div className="rounded-xl border border-emerald-300 bg-emerald-50/80 p-4 shadow-xs">
+              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                 <span>API Key generated — Copy it now. You won&apos;t be able to view it again!</span>
               </div>
-              <code className="mt-2 block break-all rounded-md bg-black/60 p-2.5 font-mono text-xs text-emerald-300">
+              <code className="mt-2 block break-all rounded-md border border-emerald-200 bg-white p-2.5 font-mono text-xs text-emerald-950 shadow-2xs">
                 {newKey}
               </code>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <Button
                   size="sm"
                   variant="outline"
-                  className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-950/50"
+                  className="border-emerald-300 bg-white text-emerald-800 hover:bg-emerald-100/70"
                   onClick={() => copyOpencode(newKey)}
                 >
                   <Copy className="mr-1.5 h-3.5 w-3.5" />
@@ -364,7 +365,7 @@ function ApiKeysTab() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="border-emerald-500/40 text-emerald-300 hover:bg-emerald-950/50"
+                  className="border-emerald-300 bg-white text-emerald-800 hover:bg-emerald-100/70"
                   onClick={() => copyClaudeJson(newKey)}
                 >
                   <Copy className="mr-1.5 h-3.5 w-3.5" />
@@ -426,7 +427,7 @@ function ApiKeysTab() {
       </Card>
 
       {/* Claude Desktop Config Instructions */}
-      <Card className="border-border/60 bg-secondary/20">
+      <Card variant="secondary">
         <CardHeader>
           <CardTitle className="text-sm font-semibold">Claude Desktop Configuration</CardTitle>
           <CardDescription>
@@ -434,7 +435,7 @@ function ApiKeysTab() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <pre className="overflow-x-auto rounded-lg bg-black/60 p-4 font-mono text-xs text-foreground/80">{`{
+          <pre className="overflow-x-auto rounded-lg border border-border bg-muted/60 p-4 font-mono text-xs text-foreground leading-relaxed">{`{
   "mcpServers": {
     "payo": {
       "type": "http",
@@ -457,6 +458,7 @@ function ApiKeysTab() {
 function AddressesTab() {
   const qc = useQueryClient()
   const [showAddForm, setShowAddForm] = useState(false)
+  const [editingAddress, setEditingAddress] = useState<any | null>(null)
 
   const { data: addresses = [], isLoading } = useQuery(orpc.addresses.list.queryOptions())
 
@@ -465,6 +467,8 @@ function AddressesTab() {
       onSuccess: () => qc.invalidateQueries({ queryKey: orpc.addresses.list.key() }),
     }),
   )
+
+  const isFormOpen = showAddForm || editingAddress !== null
 
   return (
     <div className="space-y-6">
@@ -476,19 +480,24 @@ function AddressesTab() {
               Saved destinations for autonomous quick-commerce shopping (Blinkit, Flipkart, etc.).
             </CardDescription>
           </div>
-          {!showAddForm && (
-            <Button size="sm" onClick={() => setShowAddForm(true)}>
+          {!isFormOpen && (
+            <Button size="sm" onClick={() => { setEditingAddress(null); setShowAddForm(true) }}>
               <Plus className="mr-1.5 h-4 w-4" /> Add Address
             </Button>
           )}
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Add Address Form Accordion/Panel */}
-          {showAddForm && (
-            <AddAddressForm
-              onClose={() => setShowAddForm(false)}
+          {/* Add / Edit Address Form Accordion/Panel */}
+          {isFormOpen && (
+            <AddressForm
+              initialData={editingAddress}
+              onClose={() => {
+                setShowAddForm(false)
+                setEditingAddress(null)
+              }}
               onSuccess={() => {
                 setShowAddForm(false)
+                setEditingAddress(null)
                 qc.invalidateQueries({ queryKey: orpc.addresses.list.key() })
               }}
             />
@@ -499,7 +508,7 @@ function AddressesTab() {
             <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Loading addresses...
             </div>
-          ) : addresses.length === 0 && !showAddForm ? (
+          ) : addresses.length === 0 && !isFormOpen ? (
             <div className="flex flex-col items-center justify-center py-10 text-center border rounded-xl border-dashed">
               <div className="rounded-full bg-secondary/80 p-3 text-muted-foreground mb-3">
                 <MapPin className="h-6 w-6" />
@@ -517,11 +526,11 @@ function AddressesTab() {
               {addresses.map((addr: any) => (
                 <div
                   key={addr.id}
-                  className="relative rounded-xl border border-border/70 bg-card/60 p-4 transition-all hover:border-border"
+                  className="relative rounded-xl border border-border/70 bg-card p-4 transition-all hover:border-border shadow-xs"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-foreground">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground">
                         {addr.label.toLowerCase() === 'home' ? (
                           <Home className="h-3.5 w-3.5 text-primary" />
                         ) : addr.label.toLowerCase() === 'office' ? (
@@ -534,6 +543,18 @@ function AddressesTab() {
                     </div>
 
                     <div className="flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                        onClick={() => {
+                          setShowAddForm(false)
+                          setEditingAddress(addr)
+                        }}
+                        title="Edit address"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
                       <Button
                         size="sm"
                         variant="ghost"
@@ -569,7 +590,7 @@ function AddressesTab() {
                   </div>
 
                   {/* Lat/Long indicator */}
-                  <div className="mt-3 flex items-center gap-1 rounded bg-secondary/60 px-2 py-1 text-[10px] text-muted-foreground font-mono">
+                  <div className="mt-3 flex items-center gap-1 rounded-md bg-muted/60 px-2 py-1 text-[10px] text-muted-foreground font-mono">
                     <MapPin className="h-3 w-3 text-primary shrink-0" />
                     <span>
                       {addr.latitude}, {addr.longitude}
@@ -585,24 +606,28 @@ function AddressesTab() {
   )
 }
 
-function AddAddressForm({
+function AddressForm({
+  initialData,
   onClose,
   onSuccess,
 }: {
+  initialData?: any
   onClose: () => void
   onSuccess: () => void
 }) {
-  const [label, setLabel] = useState('Home')
-  const [recipientName, setRecipientName] = useState('')
-  const [recipientPhone, setRecipientPhone] = useState('')
-  const [line1, setLine1] = useState('')
-  const [line2, setLine2] = useState('')
-  const [landmark, setLandmark] = useState('')
-  const [city, setCity] = useState('')
-  const [state, setState] = useState('')
-  const [pincode, setPincode] = useState('')
-  const [latitude, setLatitude] = useState('')
-  const [longitude, setLongitude] = useState('')
+  const isEditing = Boolean(initialData?.id)
+  const [label, setLabel] = useState(initialData?.label || 'Home')
+  const [recipientName, setRecipientName] = useState(initialData?.recipientName || '')
+  const [recipientPhone, setRecipientPhone] = useState(initialData?.recipientPhone || '')
+  const [line1, setLine1] = useState(initialData?.line1 || '')
+  const [line2, setLine2] = useState(initialData?.line2 || '')
+  const [landmark, setLandmark] = useState(initialData?.landmark || '')
+  const [city, setCity] = useState(initialData?.city || '')
+  const [state, setState] = useState(initialData?.state || '')
+  const [pincode, setPincode] = useState(initialData?.pincode || '')
+  const [latitude, setLatitude] = useState(initialData?.latitude || '')
+  const [longitude, setLongitude] = useState(initialData?.longitude || '')
+  const [locating, setLocating] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const createMut = useMutation(
@@ -616,10 +641,52 @@ function AddAddressForm({
     }),
   )
 
+  const updateMut = useMutation(
+    orpc.addresses.update.mutationOptions({
+      onSuccess: () => {
+        onSuccess()
+      },
+      onError: (err: any) => {
+        setErrorMsg(err.message || 'Failed to update address')
+      },
+    }),
+  )
+
+  const isPending = createMut.isPending || updateMut.isPending
+
+  const handleUseCurrentLocation = () => {
+    setErrorMsg(null)
+    if (!('geolocation' in navigator)) {
+      setErrorMsg('Geolocation is not supported by this browser — please enter coordinates manually')
+      return
+    }
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLatitude(String(Number(pos.coords.latitude.toFixed(7))))
+        setLongitude(String(Number(pos.coords.longitude.toFixed(7))))
+        setLocating(false)
+      },
+      (err) => {
+        setLocating(false)
+        setErrorMsg(
+          err.code === err.PERMISSION_DENIED
+            ? 'Location permission denied — please allow access or enter coordinates manually'
+            : 'Could not get your location — please enter coordinates manually',
+        )
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    )
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMsg(null)
 
+    if (!label.trim()) {
+      setErrorMsg('Address label is required')
+      return
+    }
     if (!recipientName.trim()) {
       setErrorMsg('Recipient name is required')
       return
@@ -641,8 +708,8 @@ function AddAddressForm({
       return
     }
 
-    createMut.mutate({
-      label,
+    const payload = {
+      label: label.trim(),
       recipientName: recipientName.trim(),
       recipientPhone: recipientPhone.trim(),
       line1: line1.trim(),
@@ -653,27 +720,49 @@ function AddAddressForm({
       pincode: pincode.trim(),
       latitude: latitude.trim(),
       longitude: longitude.trim(),
-    })
+    }
+
+    if (isEditing) {
+      updateMut.mutate({ id: initialData.id, ...payload })
+    } else {
+      createMut.mutate(payload)
+    }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-xl border border-primary/30 bg-secondary/20 p-5 space-y-4">
+    <form onSubmit={handleSubmit} className="rounded-xl border border-border bg-card p-5 space-y-4 shadow-xs">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold">New Delivery Address</h3>
-        <div className="flex items-center gap-1.5">
-          {['Home', 'Office', 'Other'].map((l) => (
-            <button
-              key={l}
-              type="button"
-              onClick={() => setLabel(l)}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                label === l ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {l}
-            </button>
-          ))}
+        <h3 className="text-sm font-semibold">{isEditing ? 'Edit Delivery Address' : 'New Delivery Address'}</h3>
+      </div>
+
+      {/* Editable Label Input with Quick Preset Chips */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-medium text-muted-foreground">Address Label *</label>
+          <div className="flex items-center gap-1">
+            <span className="text-[11px] text-muted-foreground mr-1 hidden sm:inline">Presets:</span>
+            {['Home', 'Office', 'Other'].map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => setLabel(preset)}
+                className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
+                  label.toLowerCase() === preset.toLowerCase()
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {preset}
+              </button>
+            ))}
+          </div>
         </div>
+        <Input
+          placeholder="e.g. Home, Office, Vacation House, Mom's Place"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          required
+        />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -753,31 +842,48 @@ function AddAddressForm({
       </div>
 
       {/* Geocoding coordinates */}
-      <div className="rounded-lg bg-black/40 p-3 space-y-2 border border-border/50">
-        <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-          <MapPin className="h-3.5 w-3.5 text-primary" />
-          <span>Coordinates (required by Blinkit & Flipkart store routers)</span>
+      <div className="rounded-lg bg-muted/50 p-3 space-y-2 border border-border">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <MapPin className="h-3.5 w-3.5 text-primary" />
+            <span>Coordinates (required for quick-commerce store routing)</span>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleUseCurrentLocation}
+            disabled={locating}
+            className="h-7 shrink-0 px-2 text-[11px] font-semibold bg-white"
+          >
+            {locating ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <LocateFixed className="h-3 w-3" />
+            )}
+            {locating ? 'Locating…' : 'Use Current location'}
+          </Button>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <Input
             placeholder="Latitude (e.g. 19.1851092)"
             value={latitude}
             onChange={(e) => setLatitude(e.target.value)}
-            className="font-mono text-xs"
+            className="font-mono text-xs bg-white"
           />
           <Input
             placeholder="Longitude (e.g. 72.9949806)"
             value={longitude}
             onChange={(e) => setLongitude(e.target.value)}
-            className="font-mono text-xs"
+            className="font-mono text-xs bg-white"
           />
         </div>
       </div>
 
-
       {errorMsg && (
-        <div className="text-xs text-red-400 bg-red-950/20 border border-red-500/30 p-2.5 rounded-lg">
-          {errorMsg}
+        <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-xs font-medium text-destructive border border-destructive/20">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>{errorMsg}</span>
         </div>
       )}
 
@@ -785,13 +891,13 @@ function AddAddressForm({
         <Button type="button" variant="ghost" size="sm" onClick={onClose}>
           Cancel
         </Button>
-        <Button type="submit" size="sm" disabled={createMut.isPending}>
-          {createMut.isPending ? (
+        <Button type="submit" size="sm" disabled={isPending}>
+          {isPending ? (
             <>
               <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Saving...
             </>
           ) : (
-            'Save Address'
+            isEditing ? 'Update Address' : 'Save Address'
           )}
         </Button>
       </div>

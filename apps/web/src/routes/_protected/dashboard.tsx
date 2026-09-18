@@ -453,14 +453,14 @@ function LiveOrderCard({ order, onUpdate }: { order: any; onUpdate: () => void }
   }
 
   return (
-    <Card className="border-amber-500/40 bg-amber-950/10">
+    <Card variant="warning">
       <CardContent className="p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <PlatformBadge platform={order.platform || 'Blinkit'} />
-              <Badge variant="outline" className="border-amber-500/40 bg-amber-500/20 text-amber-400 text-xs">
-                <Clock className="mr-1 h-3 w-3 animate-pulse" />
+              <Badge variant="outline" className="border-amber-300 bg-amber-100/90 text-amber-900 text-xs font-semibold">
+                <Clock className="mr-1 h-3 w-3 animate-pulse text-amber-700" />
                 {isAwaitingOtp ? 'Action Required: Enter OTP' : 'Processing Order'}
               </Badge>
             </div>
@@ -474,9 +474,9 @@ function LiveOrderCard({ order, onUpdate }: { order: any; onUpdate: () => void }
           </div>
 
           {isAwaitingOtp ? (
-            <div className="rounded-lg border border-amber-500/30 bg-amber-950/30 p-3 sm:max-w-md">
-              <p className="text-xs font-medium text-amber-300 mb-1.5 flex items-center gap-1.5">
-                <AlertCircle className="h-3.5 w-3.5" />
+            <div className="rounded-lg border border-amber-300/80 bg-white p-3 sm:max-w-md shadow-xs">
+              <p className="text-xs font-semibold text-amber-900 mb-1.5 flex items-center gap-1.5">
+                <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
                 Bank OTP sent to registered mobile
               </p>
               <form onSubmit={handleSubmitOtp} className="flex gap-2">
@@ -486,22 +486,22 @@ function LiveOrderCard({ order, onUpdate }: { order: any; onUpdate: () => void }
                   placeholder="6-digit OTP"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                  className="h-8 w-32 font-mono text-center tracking-widest bg-black/50 border-amber-500/40 text-amber-100"
+                  className="h-8 w-32 font-mono text-center tracking-widest bg-white border-amber-300 text-foreground"
                 />
                 <Button
                   type="submit"
                   size="sm"
                   disabled={otpMut.isPending || otp.length !== 6}
-                  className="h-8 bg-amber-500 text-black hover:bg-amber-400"
+                  className="h-8 bg-amber-600 text-white hover:bg-amber-700 font-medium"
                 >
                   {otpMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Confirm'}
                 </Button>
               </form>
-              {error && <p className="mt-1 text-[11px] text-red-400">{error}</p>}
+              {error && <p className="mt-1 text-[11px] text-destructive font-medium">{error}</p>}
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+            <div className="flex items-center gap-2 text-xs text-amber-800 font-medium">
+              <Loader2 className="h-4 w-4 animate-spin text-amber-600" />
               <span>Browser automation placing order on platform...</span>
             </div>
           )}

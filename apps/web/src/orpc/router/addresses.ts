@@ -72,6 +72,47 @@ export const createAddress = authed
     return created
   })
 
+export const updateAddress = authed
+  .input(
+    z.object({
+      id: z.string().trim().uuid(),
+      label: z.string().trim().min(1, 'Label is required'),
+      recipientName: z.string().trim().min(1, 'Recipient name is required'),
+      recipientPhone: phoneSchema,
+      line1: z.string().trim().min(1, 'Address line 1 is required'),
+      line2: z.string().trim().optional().nullable(),
+      landmark: z.string().trim().optional().nullable(),
+      city: z.string().trim().min(1, 'City is required'),
+      state: z.string().trim().min(1, 'State is required'),
+      pincode: pincodeSchema,
+      latitude: latitudeSchema,
+      longitude: longitudeSchema,
+    }),
+  )
+  .handler(async ({ input, context }) => {
+    const [updated] = await db
+      .update(userAddress)
+      .set({
+        label: input.label,
+        recipientName: input.recipientName,
+        recipientPhone: input.recipientPhone,
+        line1: input.line1,
+        line2: input.line2 ?? null,
+        landmark: input.landmark ?? null,
+        city: input.city,
+        state: input.state,
+        pincode: input.pincode,
+        latitude: input.latitude,
+        longitude: input.longitude,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(userAddress.userId, context.user.id), eq(userAddress.id, input.id)))
+      .returning()
+
+    if (!updated) throw new Error('Address not found')
+    return updated
+  })
+
 export const deleteAddress = authed
   .input(z.object({ id: z.string().trim().uuid() }))
   .handler(async ({ input, context }) => {
