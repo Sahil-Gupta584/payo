@@ -41,6 +41,7 @@ Monorepo using npm workspaces & Turborepo:
 7. **Solari scripts**: One file per platform — `src/lib/solari/flipkart.ts`, `src/lib/solari/instamart.ts`. Shared helpers in `src/lib/solari/index.ts`.
 8. **Route file size**: If a route file exceeds ~500 lines, extract into a folder with sub-components.
 9. **Ask, don't assume**: If a fix has multiple valid options or the intent is unclear, ask the user first instead of guessing.
+10. **Inputs & Autofill**: Always provide semantic `name` and standard `autoComplete` attributes on `<Input>` elements (`name="name" autoComplete="name"`, `name="email" autoComplete="email"`, etc.) so browser autofill works consistently.
 
 ## Commands
 

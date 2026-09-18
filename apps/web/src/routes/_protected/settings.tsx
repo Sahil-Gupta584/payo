@@ -177,6 +177,8 @@ function GeneralTab({ user }: { user: any }) {
               </label>
               <Input
                 id="name-input"
+                name="name"
+                autoComplete="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your full name"
@@ -189,6 +191,8 @@ function GeneralTab({ user }: { user: any }) {
               </label>
               <Input
                 id="email-input"
+                name="email"
+                autoComplete="email"
                 value={user.email}
                 disabled
                 className="opacity-60 cursor-not-allowed bg-muted/50"
@@ -321,6 +325,7 @@ function ApiKeysTab() {
           {/* Create API Key Form */}
           <div className="flex gap-2">
             <Input
+              name="keyName"
               placeholder="Key label (e.g. claude-desktop, work-laptop)"
               value={keyName}
               onChange={(e) => setKeyName(e.target.value)}
@@ -761,6 +766,7 @@ function AddressForm({
           </div>
         </div>
         <Input
+          name="label"
           placeholder="e.g. Home, Office, Vacation House, Mom's Place"
           value={label}
           onChange={(e) => setLabel(e.target.value)}
@@ -772,6 +778,8 @@ function AddressForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">Recipient Name *</label>
           <Input
+            name="recipientName"
+            autoComplete="name"
             placeholder="Recipient full name"
             value={recipientName}
             onChange={(e) => setRecipientName(e.target.value)}
@@ -780,6 +788,9 @@ function AddressForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">Phone Number *</label>
           <Input
+            name="recipientPhone"
+            autoComplete="tel"
+            type="tel"
             placeholder="10-digit mobile number"
             value={recipientPhone}
             onChange={(e) => setRecipientPhone(e.target.value.replace(/\D/g, ''))}
@@ -791,6 +802,8 @@ function AddressForm({
       <div className="flex flex-col gap-1.5">
         <label className="text-xs font-medium text-muted-foreground">Flat / House No. / Building / Floor *</label>
         <Input
+          name="line1"
+          autoComplete="address-line1"
           placeholder="e.g. Flat 302, Building 4B, Sunrise Heights"
           value={line1}
           onChange={(e) => setLine1(e.target.value)}
@@ -801,6 +814,8 @@ function AddressForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">Street / Sector / Area</label>
           <Input
+            name="line2"
+            autoComplete="address-line2"
             placeholder="e.g. Indiranagar, Sector 14"
             value={line2}
             onChange={(e) => setLine2(e.target.value)}
@@ -809,6 +824,7 @@ function AddressForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">Landmark (Optional)</label>
           <Input
+            name="landmark"
             placeholder="e.g. Near Metro Station"
             value={landmark}
             onChange={(e) => setLandmark(e.target.value)}
@@ -820,6 +836,8 @@ function AddressForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">City *</label>
           <Input
+            name="city"
+            autoComplete="address-level2"
             placeholder="City"
             value={city}
             onChange={(e) => setCity(e.target.value)}
@@ -828,6 +846,8 @@ function AddressForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">State *</label>
           <Input
+            name="state"
+            autoComplete="address-level1"
             placeholder="State"
             value={state}
             onChange={(e) => setState(e.target.value)}
@@ -836,6 +856,8 @@ function AddressForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">Pincode *</label>
           <Input
+            name="pincode"
+            autoComplete="postal-code"
             placeholder="6-digit pincode"
             value={pincode}
             onChange={(e) => setPincode(e.target.value)}
@@ -869,12 +891,16 @@ function AddressForm({
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <Input
+            name="latitude"
+            autoComplete="off"
             placeholder="Latitude (e.g. 19.1851092)"
             value={latitude}
             onChange={(e) => setLatitude(e.target.value)}
             className="font-mono text-xs bg-white"
           />
           <Input
+            name="longitude"
+            autoComplete="off"
             placeholder="Longitude (e.g. 72.9949806)"
             value={longitude}
             onChange={(e) => setLongitude(e.target.value)}

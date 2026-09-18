@@ -100,7 +100,9 @@ function LoginPage() {
                 </label>
                 <Input
                   id="login-name"
+                  name="name"
                   type="text"
+                  autoComplete="name"
                   placeholder="e.g. Sahil Gupta"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -114,7 +116,9 @@ function LoginPage() {
                 </label>
                 <Input
                   id="login-email"
+                  name="email"
                   type="email"
+                  autoComplete="email"
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
