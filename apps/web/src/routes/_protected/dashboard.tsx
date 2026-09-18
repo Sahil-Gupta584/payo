@@ -127,7 +127,7 @@ function Dashboard() {
                 )}
               </span>
               {liveOrders.length > 0 && (
-                <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-600 text-xs">
+                <Badge variant="secondary" className="text-xs">
                   {liveOrders.length} active
                 </Badge>
               )}
@@ -400,27 +400,27 @@ function PlatformBadge({ platform }: { platform: string }) {
 function OrderStatusBadge({ status }: { status: string }) {
   if (status === 'confirmed') {
     return (
-      <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/10 text-emerald-500 text-xs">
+      <Badge variant="secondary" className="text-xs">
         <CheckCircle2 className="mr-1 h-3 w-3" /> Confirmed
       </Badge>
     )
   }
   if (status === 'failed') {
     return (
-      <Badge variant="outline" className="border-red-500/30 bg-red-500/10 text-red-500 text-xs">
+      <Badge variant="destructive" className="text-xs">
         <XCircle className="mr-1 h-3 w-3" /> Failed
       </Badge>
     )
   }
   if (status === 'cancelled') {
     return (
-      <Badge variant="outline" className="border-zinc-500/30 bg-zinc-500/10 text-zinc-400 text-xs">
+      <Badge variant="outline" className="text-xs">
         Cancelled
       </Badge>
     )
   }
   return (
-    <Badge variant="outline" className="border-amber-500/30 bg-amber-500/10 text-amber-500 text-xs">
+    <Badge variant="outline" className="text-xs">
       <Clock className="mr-1 h-3 w-3" /> {status}
     </Badge>
   )

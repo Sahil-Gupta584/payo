@@ -78,7 +78,7 @@ function TopupPage() {
       <div className="grid gap-6 md:grid-cols-5">
         {/* Left column: Top up form (3 cols) */}
         <div className="space-y-6 md:col-span-3">
-          <Card className="border-border/60 bg-card/60 backdrop-blur-sm shadow-sm">
+          <Card className="shadow-xs">
             <CardContent className="p-6">
               <div className="flex items-center justify-between pb-4 border-b border-border/50">
                 <div className="flex items-center gap-2.5">
@@ -91,10 +91,6 @@ function TopupPage() {
                       {balanceLoading ? '...' : `$${balanceDollars}`}
                     </p>
                   </div>
-                </div>
-                <div className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Ready to Shop
                 </div>
               </div>
 
@@ -172,7 +168,7 @@ function TopupPage() {
 
         {/* Right column: Quick perks & info (2 cols) */}
         <div className="space-y-4 md:col-span-2">
-          <Card className="border-border/60 bg-card/40">
+          <Card className="shadow-xs">
             <CardContent className="p-5 space-y-3.5">
               <h3 className="text-sm font-semibold flex items-center gap-1.5">
                 <CheckCircle2 className="h-4 w-4 text-primary" />
@@ -204,7 +200,7 @@ function TopupPage() {
           <p className="text-xs text-muted-foreground">Past credits and order debits on your account.</p>
         </div>
 
-        <Card className="border-border/60 overflow-hidden">
+        <Card className="overflow-hidden shadow-xs">
           <CardContent className="p-0">
             {historyLoading ? (
               <div className="p-8 text-center text-sm text-muted-foreground">Loading transactions...</div>

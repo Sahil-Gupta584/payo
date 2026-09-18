@@ -1,19 +1,19 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "#/lib/utils"
+import { cn } from "cn"
 
 const cardVariants = cva(
-  "flex flex-col gap-6 rounded-xl border py-6 shadow-[0_1px_3px_0_rgba(0,0,0,0.04),inset_0_1px_0_0_rgba(255,255,255,0.06)] ring-1 ring-black/[0.03] transition-[border-color,box-shadow]",
+  "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-2xl py-(--card-spacing) text-sm text-card-foreground ring-1 ring-foreground/10 [--card-spacing:--spacing(6)] has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(4)] *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
   {
     variants: {
       variant: {
-        default: "border-border/80 bg-card text-card-foreground",
-        muted: "border-border/60 bg-muted/40 text-card-foreground",
-        secondary: "border-border/60 bg-secondary/50 text-secondary-foreground",
-        outline: "border-border/80 bg-transparent text-card-foreground shadow-none ring-0",
-        warning: "border-amber-200 bg-amber-50/70 text-amber-950 ring-amber-500/10",
-        success: "border-emerald-200 bg-emerald-50/70 text-emerald-950 ring-emerald-500/10",
-        destructive: "border-destructive/20 bg-destructive/5 text-destructive ring-destructive/10",
+        default: "bg-card text-card-foreground",
+        muted: "bg-muted/60 text-card-foreground",
+        secondary: "bg-secondary/60 text-secondary-foreground",
+        outline: "bg-transparent text-card-foreground",
+        warning: "bg-amber-50/80 text-amber-950 border border-amber-200 ring-amber-500/10 dark:bg-amber-950/20 dark:text-amber-200 dark:border-amber-800",
+        success: "bg-emerald-50/80 text-emerald-950 border border-emerald-200 ring-emerald-500/10 dark:bg-emerald-950/20 dark:text-emerald-200 dark:border-emerald-800",
+        destructive: "bg-destructive/10 text-destructive border border-destructive/20 ring-destructive/10",
       },
     },
     defaultVariants: {
@@ -24,12 +24,14 @@ const cardVariants = cva(
 
 function Card({
   className,
+  size = "default",
   variant = "default",
   ...props
-}: React.ComponentProps<"div"> & VariantProps<typeof cardVariants>) {
+}: React.ComponentProps<"div"> & VariantProps<typeof cardVariants> & { size?: "default" | "sm" }) {
   return (
     <div
       data-slot="card"
+      data-size={size}
       data-variant={variant}
       className={cn(cardVariants({ variant }), className)}
       {...props}
@@ -42,7 +44,7 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-header"
       className={cn(
-        "@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-2 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:border-border/60 [.border-b]:pb-6",
+        "group/card-header @container/card-header grid auto-rows-min items-start gap-2 rounded-t-xl px-(--card-spacing) has-data-[slot=card-action]:grid-cols-[1fr_auto] has-data-[slot=card-description]:grid-rows-[auto_auto] [.border-b]:pb-(--card-spacing)",
         className
       )}
       {...props}
@@ -54,7 +56,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-title"
-      className={cn("leading-none font-semibold", className)}
+      className={cn("font-heading text-base font-medium", className)}
       {...props}
     />
   )
@@ -87,7 +89,7 @@ function CardContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-content"
-      className={cn("px-6", className)}
+      className={cn("px-(--card-spacing)", className)}
       {...props}
     />
   )
@@ -97,7 +99,10 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-footer"
-      className={cn("flex items-center px-6 [.border-t]:border-border/60 [.border-t]:pt-6", className)}
+      className={cn(
+        "flex items-center rounded-b-xl px-(--card-spacing) [.border-t]:pt-(--card-spacing)",
+        className
+      )}
       {...props}
     />
   )

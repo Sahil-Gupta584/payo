@@ -5,7 +5,6 @@ import { orpc } from '#/orpc/client'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '#/components/ui/card'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
-import { Badge } from '#/components/ui/badge'
 import { Separator } from '#/components/ui/separator'
 import { Avatar, AvatarFallback, AvatarImage } from '#/components/ui/avatar'
 import {
@@ -165,10 +164,7 @@ function GeneralTab({ user }: { user: any }) {
                 <AvatarFallback className="text-base">{initials}</AvatarFallback>
               </Avatar>
               <div>
-                <p className="text-sm font-medium">{user.email}</p>
-                <Badge variant="outline" className="mt-1 border-emerald-300 bg-emerald-50 text-emerald-700 text-[11px] font-semibold">
-                  Verified Account
-                </Badge>
+                <p className="text-sm font-semibold">{user.email}</p>
               </div>
             </div>
 

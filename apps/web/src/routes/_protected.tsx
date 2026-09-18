@@ -41,7 +41,7 @@ function ProtectedLayout() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <nav className="border-b border-border bg-white shadow-[0_1px_2px_0_rgba(0,0,0,0.03)] px-4 sm:px-6 sticky top-0 z-30">
+      <nav className="border-b border-border bg-card/95 backdrop-blur-md shadow-[0_1px_2px_0_rgba(0,0,0,0.03)] px-4 sm:px-6 sticky top-0 z-30">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between">
           <Link to="/dashboard" className="flex items-center gap-2 no-underline">
             <img src="/favicon.png" alt="Payo" className="h-7 w-7 mix-blend-multiply" />

@@ -2,6 +2,9 @@
 @plugin '@tailwindcss/typography';
 
 @import 'tw-animate-css';
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/outfit";
+@import "@fontsource-variable/raleway";
 
 @custom-variant dark (&:is(.dark, .dark *));
 
@@ -36,6 +39,39 @@
   --blur-small: 2px;
   --blur-medium: 3px;
   --blur-large: 8px;
+
+  --background: oklch(0.965 0.002 17.2);
+  --foreground: oklch(0.147 0.004 49.3);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.147 0.004 49.3);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.147 0.004 49.3);
+  --primary: oklch(0.214 0.009 43.1);
+  --primary-foreground: oklch(0.986 0.002 67.8);
+  --secondary: oklch(0.94 0.003 17.2);
+  --secondary-foreground: oklch(0.214 0.009 43.1);
+  --muted: oklch(0.94 0.003 17.2);
+  --muted-foreground: oklch(0.547 0.021 43.1);
+  --accent: oklch(0.94 0.003 17.2);
+  --accent-foreground: oklch(0.214 0.009 43.1);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0.005 34.3);
+  --input: oklch(0.922 0.005 34.3);
+  --ring: oklch(0.714 0.014 41.2);
+  --chart-1: oklch(0.879 0.169 91.605);
+  --chart-2: oklch(0.769 0.188 70.08);
+  --chart-3: oklch(0.666 0.179 58.318);
+  --chart-4: oklch(0.555 0.163 48.998);
+  --chart-5: oklch(0.473 0.137 46.201);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.986 0.002 67.8);
+  --sidebar-foreground: oklch(0.147 0.004 49.3);
+  --sidebar-primary: oklch(0.214 0.009 43.1);
+  --sidebar-primary-foreground: oklch(0.986 0.002 67.8);
+  --sidebar-accent: oklch(0.96 0.002 17.2);
+  --sidebar-accent-foreground: oklch(0.214 0.009 43.1);
+  --sidebar-border: oklch(0.922 0.005 34.3);
+  --sidebar-ring: oklch(0.714 0.014 41.2);
 }
 
 /* ── Shared fade-in for state swaps ─────────────────────────────── */
@@ -48,117 +84,42 @@
   animation: fadeSlideIn var(--duration-quick) var(--ease-smooth-out) both;
 }
 
-/* Apple HIG — semantic roles, not raw hex.
-   Light = systemBackground / label / secondaryLabel.
-   Dark adapts automatically. Single accent: systemBlue. */
-
-:root {
-  /* System roles */
-  --system-blue: #2563EB;
-  --system-green: #16A34A;
-  --system-red: #DC2626;
-  --label: #0F172A;
-  --secondary-label: #64748B;
-  --tertiary-label: #94A3B8;
-  --system-background: #F8F9FB;
-  --secondary-system-background: #F1F3F7;
-  --tertiary-system-background: #FFFFFF;
-  --system-gray: #8E8E93;
-  --system-gray2: #AEAEB2;
-  --system-gray3: #C7C7CC;
-  --system-gray4: #D1D1D6;
-  --system-gray5: #E2E8F0;
-  --system-gray6: #F1F3F7;
-  --separator: #E2E8F0;
-  --separator-opaque: #CBD5E1;
-
-  /* App semantic tokens (mapped to Tailwind) */
-  --background: #F8F9FB;
-  --foreground: #0F172A;
-  --card: #FFFFFF;
-  --card-foreground: #0F172A;
-  --popover: #FFFFFF;
-  --popover-foreground: #0F172A;
-  --primary: #2563EB;
-  --primary-foreground: #FFFFFF;
-  --secondary: #F1F3F7;
-  --secondary-foreground: #0F172A;
-  --muted: #F1F3F7;
-  --muted-foreground: #64748B;
-  --accent: #F1F3F7;
-  --accent-foreground: #0F172A;
-  --destructive: #DC2626;
-  --destructive-foreground: #FFFFFF;
-  --border: #E2E8F0;
-  --input: #CBD5E1;
-  --ring: #2563EB;
-
-  --chart-1: #2563EB;
-  --chart-2: #16A34A;
-  --chart-3: #F59E0B;
-  --chart-4: #8B5CF6;
-  --chart-5: #EC4899;
-
-  --radius: 0.75rem;
-
-  --sidebar: #FFFFFF;
-  --sidebar-foreground: #0F172A;
-  --sidebar-primary: #2563EB;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #F1F3F7;
-  --sidebar-accent-foreground: #0F172A;
-  --sidebar-border: #E2E8F0;
-  --sidebar-ring: #2563EB;
-}
-
 .dark {
-  --label: #FFFFFF;
-  --secondary-label: rgba(235, 235, 245, 0.6);
-  --tertiary-label: rgba(235, 235, 245, 0.3);
-  --system-background: #000000;
-  --secondary-system-background: #1C1C1E;
-  --tertiary-system-background: #2C2C2E;
-  --system-gray: #8E8E93;
-  --system-gray2: #636366;
-  --system-gray3: #48484A;
-  --system-gray4: #3A3A3C;
-  --system-gray5: #2C2C2E;
-  --system-gray6: #1C1C1E;
-  --separator: rgba(84, 84, 88, 0.36);
-  --separator-opaque: #38383A;
-
-  --background: var(--system-background);
-  --foreground: var(--label);
-  --card: var(--secondary-system-background);
-  --card-foreground: var(--label);
-  --popover: var(--secondary-system-background);
-  --popover-foreground: var(--label);
-  --primary: var(--system-blue);
-  --primary-foreground: #FFFFFF;
-  --secondary: var(--system-gray5);
-  --secondary-foreground: var(--label);
-  --muted: var(--system-gray5);
-  --muted-foreground: var(--secondary-label);
-  --accent: var(--system-gray5);
-  --accent-foreground: var(--label);
-  --destructive: var(--system-red);
-  --destructive-foreground: #FFFFFF;
-  --border: var(--separator);
-  --input: var(--separator);
-  --ring: var(--system-blue);
-
-  --sidebar: var(--secondary-system-background);
-  --sidebar-foreground: var(--label);
-  --sidebar-primary: var(--system-blue);
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: var(--system-gray5);
-  --sidebar-accent-foreground: var(--label);
-  --sidebar-border: var(--separator);
-  --sidebar-ring: var(--system-blue);
+  --background: oklch(0.147 0.004 49.3);
+  --foreground: oklch(0.986 0.002 67.8);
+  --card: oklch(0.214 0.009 43.1);
+  --card-foreground: oklch(0.986 0.002 67.8);
+  --popover: oklch(0.214 0.009 43.1);
+  --popover-foreground: oklch(0.986 0.002 67.8);
+  --primary: oklch(0.922 0.005 34.3);
+  --primary-foreground: oklch(0.214 0.009 43.1);
+  --secondary: oklch(0.268 0.011 36.5);
+  --secondary-foreground: oklch(0.986 0.002 67.8);
+  --muted: oklch(0.268 0.011 36.5);
+  --muted-foreground: oklch(0.714 0.014 41.2);
+  --accent: oklch(0.268 0.011 36.5);
+  --accent-foreground: oklch(0.986 0.002 67.8);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.547 0.021 43.1);
+  --chart-1: oklch(0.879 0.169 91.605);
+  --chart-2: oklch(0.769 0.188 70.08);
+  --chart-3: oklch(0.666 0.179 58.318);
+  --chart-4: oklch(0.555 0.163 48.998);
+  --chart-5: oklch(0.473 0.137 46.201);
+  --sidebar: oklch(0.214 0.009 43.1);
+  --sidebar-foreground: oklch(0.986 0.002 67.8);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.986 0.002 67.8);
+  --sidebar-accent: oklch(0.268 0.011 36.5);
+  --sidebar-accent-foreground: oklch(0.986 0.002 67.8);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.547 0.021 43.1);
 }
 
 @theme inline {
-  --font-sans: 'Nunito', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: 'Outfit Variable', sans-serif;
   --font-mono: 'SF Mono', ui-monospace, SFMono-Regular, monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -196,6 +157,10 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --font-heading: 'Raleway Variable', sans-serif;
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 html,
@@ -213,18 +178,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Links — systemBlue only */
-a {
-  color: var(--primary);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 2px;
-}
-
-a:hover {
-  opacity: 0.8;
-}
-
-/* Code — subtle systemGray6 surface */
+/* Code — subtle surface */
 code {
   font-family: var(--font-mono);
   font-size: 0.9em;
@@ -246,7 +200,7 @@ pre code {
 .prose pre {
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--secondary-system-background);
+  background: var(--secondary);
 }
 
 /* Liquid Glass — single translucent surface */
@@ -262,9 +216,17 @@ pre code {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    @apply font-sans;
+  }
   body {
     background-color: var(--background);
     color: var(--foreground);
+    @apply bg-background text-foreground;
+  }
+  a {
+    color: inherit;
+    text-decoration: inherit;
   }
   button, [role="button"], select, a,
   [data-radix-collection-item],
