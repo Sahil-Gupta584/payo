@@ -79,7 +79,7 @@ function SettingsPage() {
         <div className="min-w-0">
           {currentTab === 'general' && <GeneralTab user={user} />}
           {currentTab === 'api-keys' && <ApiKeysTab />}
-          {currentTab === 'addresses' && <AddressesTab />}
+          {currentTab === 'addresses' && <AddressesTab user={user} />}
         </div>
       </div>
     </div>
@@ -451,10 +451,11 @@ function ApiKeysTab() {
 // -----------------------------------------------------------------------------
 // 3. Addresses Tab (Manage Delivery Addresses)
 // -----------------------------------------------------------------------------
-function AddressesTab() {
+function AddressesTab({ user }: { user: any }) {
   const qc = useQueryClient()
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingAddress, setEditingAddress] = useState<any | null>(null)
+  const defaultRecipientName = user?.name && !user.name.includes('@') ? user.name : (user?.name || '')
 
   const { data: addresses = [], isLoading } = useQuery(orpc.addresses.list.queryOptions())
 
@@ -487,6 +488,7 @@ function AddressesTab() {
           {isFormOpen && (
             <AddressForm
               initialData={editingAddress}
+              defaultRecipientName={defaultRecipientName}
               onClose={() => {
                 setShowAddForm(false)
                 setEditingAddress(null)
@@ -604,16 +606,20 @@ function AddressesTab() {
 
 function AddressForm({
   initialData,
+  defaultRecipientName = '',
   onClose,
   onSuccess,
 }: {
   initialData?: any
+  defaultRecipientName?: string
   onClose: () => void
   onSuccess: () => void
 }) {
   const isEditing = Boolean(initialData?.id)
   const [label, setLabel] = useState(initialData?.label || 'Home')
-  const [recipientName, setRecipientName] = useState(initialData?.recipientName || '')
+  const [recipientName, setRecipientName] = useState(
+    initialData?.recipientName || defaultRecipientName || ''
+  )
   const [recipientPhone, setRecipientPhone] = useState(initialData?.recipientPhone || '')
   const [line1, setLine1] = useState(initialData?.line1 || '')
   const [line2, setLine2] = useState(initialData?.line2 || '')

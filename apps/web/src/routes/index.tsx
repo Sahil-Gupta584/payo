@@ -1,16 +1,11 @@
-import { createFileRoute, redirect, Link } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { getSession } from '#/lib/session'
 import { client } from '#/orpc/client'
 import { Button } from '#/components/ui/button'
 import { Check, Loader2, ShieldCheck, ChevronDown, ArrowUp, Paperclip } from 'lucide-react'
 import { cn } from '#/lib/utils'
 
 export const Route = createFileRoute('/')({
-  beforeLoad: async () => {
-    const session = await getSession()
-    if (session?.user) throw redirect({ to: '/dashboard' })
-  },
   component: LandingPage,
 })
 

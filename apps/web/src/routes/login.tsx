@@ -16,6 +16,7 @@ export const Route = createFileRoute('/login')({
 })
 
 function LoginPage() {
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
@@ -24,17 +25,32 @@ function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!name.trim()) {
+      setError('Please enter your full name')
+      return
+    }
+    if (!email.trim()) {
+      setError('Please enter your email address')
+      return
+    }
     setLoading(true)
     setError('')
     setNotInvited(false)
     try {
-      const { allowed } = await client.invite.check({ email })
+      const { allowed } = await client.invite.check({
+        email: email.trim(),
+        name: name.trim(),
+      })
       if (!allowed) {
         setNotInvited(true)
         setLoading(false)
         return
       }
-      await authClient.signIn.magicLink({ email, callbackURL: '/dashboard' } as any)
+      await authClient.signIn.magicLink({
+        email: email.trim(),
+        name: name.trim(),
+        callbackURL: '/dashboard',
+      } as any)
       setSent(true)
     } catch (err: any) {
       setError(err.message ?? 'Something went wrong')
@@ -77,14 +93,34 @@ function LoginPage() {
               </Button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <Input
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+            <form onSubmit={handleSubmit} className="space-y-3.5">
+              <div className="space-y-1.5">
+                <label htmlFor="login-name" className="text-xs font-medium text-muted-foreground">
+                  Your Name
+                </label>
+                <Input
+                  id="login-name"
+                  type="text"
+                  placeholder="e.g. Sahil Gupta"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="login-email" className="text-xs font-medium text-muted-foreground">
+                  Email Address
+                </label>
+                <Input
+                  id="login-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
               {error && <p className="text-xs text-destructive">{error}</p>}
               <Button type="submit" disabled={loading} className="w-full">
                 {loading ? 'Sending...' : 'Send magic link'}
