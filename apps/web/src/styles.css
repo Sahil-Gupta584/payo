@@ -228,6 +228,9 @@ pre code {
     color: inherit;
     text-decoration: inherit;
   }
+  label {
+    display: block;
+  }
   button, [role="button"], select, a,
   [data-radix-collection-item],
   [data-state], [data-radix-dropdown-menu-trigger],
