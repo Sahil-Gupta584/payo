@@ -14,7 +14,7 @@ async function handle({ request }: { request: Request }) {
 
     let event: any
     try {
-      event = (dodo as any).webhooks.unwrap(body, { headers: headersObj })
+      event = (dodo).webhooks.unwrap(body, { headers: headersObj })
     } catch (err) {
       console.error('[dodo webhook] signature verification failed:', err)
       return new Response('Invalid signature', { status: 401 })
