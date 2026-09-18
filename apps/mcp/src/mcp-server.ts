@@ -63,40 +63,51 @@ export function createServer(user: User | null) {
       description: 'Search products on Swiggy Instamart and Blinkit. Returns up to 30 results (default 15) with id, name, price, availability, platform.',
       inputSchema: {
         query: z.string().trim().describe('e.g. diet coke, peanut butter'),
+        address_id: z.string().trim().describe('ID of saved delivery address from list_addresses. Required because quick-commerce catalog and stock depend on the exact local dark store serving this address.'),
         platform: z.enum(['swiggy', 'blinkit', 'all']).default('all').describe('Filter platform: swiggy, blinkit, or all (default all)'),
         limit: z.number().int().min(1).max(30).default(15).describe('Number of results to return (1-30, default 15)'),
-        address_id: z.string().trim().optional().describe('ID of saved address to search nearby dark stores for. If not provided, uses your first saved address.'),
       },
     },
-    async ({ query, platform, limit, address_id }) => {
+    async ({ query, address_id, platform, limit }) => {
+      if (!user) return unauthed
+
       const effectiveLimit = limit ?? 15
 
-      let userLat: number | undefined
-      let userLon: number | undefined
-      if (user) {
-        const userAddr = address_id
-          ? await db.query.userAddress.findFirst({
-              where: and(eq(userAddress.userId, user.id), eq(userAddress.id, address_id)),
-            })
-          : await db.query.userAddress.findFirst({
-              where: eq(userAddress.userId, user.id),
-              orderBy: [desc(userAddress.createdAt)],
-            })
-        if (userAddr?.latitude && userAddr?.longitude) {
-          const parsedLat = parseFloat(userAddr.latitude)
-          const parsedLon = parseFloat(userAddr.longitude)
-          if (!isNaN(parsedLat) && !isNaN(parsedLon)) {
-            userLat = parsedLat
-            userLon = parsedLon
-          }
+      const userAddr = await db.query.userAddress.findFirst({
+        where: and(eq(userAddress.userId, user.id), eq(userAddress.id, address_id)),
+      })
+
+      if (!userAddr) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error: Address with ID '${address_id}' not found. Please call list_addresses to find available address IDs, or add one in the Payo dashboard under Settings → Delivery Addresses.`,
+            },
+          ],
+          isError: true as const,
+        }
+      }
+
+      const parsedLat = parseFloat(userAddr.latitude)
+      const parsedLon = parseFloat(userAddr.longitude)
+      if (isNaN(parsedLat) || isNaN(parsedLon)) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error: Address '${userAddr.label}' does not have valid coordinates. Please update the address in the Payo dashboard with valid coordinates.`,
+            },
+          ],
+          isError: true as const,
         }
       }
 
       const { products } = await searchProducts(
         query,
         platform ?? 'all',
-        userLat ?? 19.1851092,
-        userLon ?? 72.9949806,
+        parsedLat,
+        parsedLon,
       )
       const { inrToUsdCents } = await import('./lib/currency.js')
       const results = await Promise.all(
