@@ -33,7 +33,7 @@ export type BlinkitCheckoutResult = {
 export async function blinkitCheckout(
   productId: string,
   _card: { number: string; expiry: string; cvv: string; name?: string },
-  paymentMethod: 'card' | 'cod' = 'card',
+  paymentMethod: 'wallet' | 'cod' = 'wallet',
   deliveryAddress?: DeliveryAddressInfo,
 ): Promise<BlinkitCheckoutResult> {
   const { browser, sessionId } = await launchBrowser(env.SOLARI_PROFILE_ID)
@@ -56,7 +56,7 @@ export async function blinkitCheckout(
           addr,
         }: {
           prodId: string
-          pm: 'card' | 'cod'
+          pm: 'wallet' | 'cod'
           addr?: DeliveryAddressInfo
         }) => {
           const getCookie = (name: string) => {
@@ -274,7 +274,7 @@ export async function blinkitCheckout(
           let cardToken: string | null = null
           let cardVault: string | null = null
 
-          if (pm === 'card') {
+          if (pm === 'wallet') {
             // Step D: Get Payment Methods
             const pmFields: Record<string, string> = {
               country_id: '1',
@@ -384,7 +384,7 @@ export async function blinkitCheckout(
 
     // If card payment with 3DSecure checkout URL, navigate and extract SBI OTP fields
     let sbiFields: BlinkitCheckoutResult['sbiFields']
-    if (paymentMethod === 'card' && checkoutData.checkoutUrl) {
+    if (paymentMethod === 'wallet' && checkoutData.checkoutUrl) {
       await step('navigate to 3DSecure / OTP page', page, async () => {
         await page.goto(checkoutData.checkoutUrl!, { waitUntil: 'domcontentloaded', timeout: 30000 })
       })

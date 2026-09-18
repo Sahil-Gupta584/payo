@@ -178,7 +178,7 @@ export function createServer(user: User | null) {
         product_name: z.string().trim(),
         platform: z.enum(['instamart', 'blinkit']).default('instamart').describe('Platform: instamart or blinkit (default instamart)'),
         amount: z.number().int().positive().describe('price in USD cents from search_products.price_usd_cents ($1 = 100 cents)'),
-        payment_method: z.enum(['card', 'cod']).default('card').describe('card = charge wallet via card (requires OTP), cod = cash on delivery (no wallet needed)'),
+        payment_method: z.enum(['wallet', 'cod']).default('wallet').describe('wallet = pay from wallet balance (OTP required), cod = cash on delivery (pay at door)'),
         address_id: z.string().trim().describe('ID of saved address from list_addresses to deliver to (required)'),
       },
     },
@@ -186,7 +186,7 @@ export function createServer(user: User | null) {
       if (!user) return unauthed
 
       const targetPlatform = platform ?? 'instamart'
-      const pm = payment_method ?? 'card'
+      const pm = payment_method ?? 'wallet'
 
       const chosenAddress = await db.query.userAddress.findFirst({
         where: and(eq(userAddress.userId, user.id), eq(userAddress.id, address_id)),
@@ -233,7 +233,7 @@ export function createServer(user: User | null) {
           ? priceVerification.priceCents
           : amount
 
-      if (pm === 'card') {
+      if (pm === 'wallet') {
         const freshUser = await db.query.user.findFirst({ where: eq(userTable.id, user.id) })
         const balance = freshUser?.balance ?? 0
         if (balance < finalAmount) {

@@ -29,7 +29,7 @@ export type DeliveryAddressInfo = {
 export async function instamartCheckout(
   productId: string,
   card: { number: string; expiry: string; cvv: string; name?: string },
-  paymentMethod: 'card' | 'cod' = 'card',
+  paymentMethod: 'wallet' | 'cod' = 'wallet',
   addr?: DeliveryAddressInfo,
 ): Promise<InstamartCheckoutResult> {
   const { browser, sessionId } = await launchBrowser(env.SOLARI_PROFILE_ID)
