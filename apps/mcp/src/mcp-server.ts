@@ -285,32 +285,32 @@ export function createServer(user: User | null) {
       }
 
       if (pm === 'cod') {
+        // COD = user pays cash at delivery. Platform card is never charged.
+        // Only deduct the automation service fee from wallet — NOT the order amount.
         const { getServiceFeeCents } = await import('./lib/currency.js')
         const serviceFeeCents = getServiceFeeCents(finalAmount)
-        const totalDue = finalAmount + serviceFeeCents
 
         const freshUser = await db.query.user.findFirst({ where: eq(userTable.id, user.id) })
         const balance = freshUser?.balance ?? 0
-        if (balance < totalDue) {
-          await db.update(order).set({ status: 'failed', errorMessage: 'Insufficient balance for COD fee' }).where(eq(order.id, orderId))
-          return { content: [{ type: 'text' as const, text: `❌ Insufficient wallet balance.\n\nOrder: $${(finalAmount / 100).toFixed(2)}\nService fee: $${(serviceFeeCents / 100).toFixed(2)}\nTotal: $${(totalDue / 100).toFixed(2)}\nWallet: $${(balance / 100).toFixed(2)}` }], isError: true }
+        if (balance < serviceFeeCents) {
+          await db.update(order).set({ status: 'failed', errorMessage: 'Insufficient balance for service fee' }).where(eq(order.id, orderId))
+          return { content: [{ type: 'text' as const, text: `❌ Insufficient wallet balance for service fee.\n\nService fee: $${(serviceFeeCents / 100).toFixed(2)}\nWallet: $${(balance / 100).toFixed(2)}\n\nPlease top up at least $${(serviceFeeCents / 100).toFixed(2)} to place this order.` }], isError: true }
         }
 
         await db.transaction(async (tx) => {
           const [debited] = await tx.update(userTable)
-            .set({ balance: sql`${userTable.balance} - ${totalDue}` })
-            .where(and(eq(userTable.id, user.id), gte(userTable.balance, totalDue)))
+            .set({ balance: sql`${userTable.balance} - ${serviceFeeCents}` })
+            .where(and(eq(userTable.id, user.id), gte(userTable.balance, serviceFeeCents)))
             .returning()
           if (!debited) throw new Error('Insufficient balance')
 
-          await tx.insert(walletHistory).values({ userId: user.id, amount: finalAmount, type: 'debit', description: `COD Order ${product_name}`, balanceAfter: debited.balance! + serviceFeeCents, referenceId: orderId })
-          await tx.insert(walletHistory).values({ userId: user.id, amount: serviceFeeCents, type: 'debit', description: `Service fee - ${product_name}`, balanceAfter: debited.balance, referenceId: orderId })
+          await tx.insert(walletHistory).values({ userId: user.id, amount: serviceFeeCents, type: 'debit', description: `Service fee - ${product_name} (COD)`, balanceAfter: debited.balance, referenceId: orderId })
           await tx.update(order).set({ status: 'confirmed' }).where(eq(order.id, orderId))
           await tx.insert(orderHistory).values({ id: orderId as any, userId: user.id, platform: targetPlatform, productId: product_id, productName: product_name, amount: finalAmount, status: 'confirmed', paymentMethod: pm })
         })
 
         const deliveryInfo = `\nDelivering to: ${chosenAddress.label} (${chosenAddress.recipientName} - ${chosenAddress.recipientPhone})\nAddress: ${chosenAddress.line1}, ${chosenAddress.city}`
-        return { content: [{ type: 'text' as const, text: `✅ COD order placed!\n\nOrder ID: ${orderId}\nPlatform: ${targetPlatform}\nProduct: ${product_name}\nOrder: $${(finalAmount / 100).toFixed(2)} + $${(serviceFeeCents / 100).toFixed(2)} service fee${deliveryInfo}\nPayment: Cash on Delivery — pay when the delivery arrives.` }] }
+        return { content: [{ type: 'text' as const, text: `✅ COD order placed!\n\nOrder ID: ${orderId}\nPlatform: ${targetPlatform}\nProduct: ${product_name} (₹ paid at delivery)${deliveryInfo}\nService fee: $${(serviceFeeCents / 100).toFixed(2)} debited from wallet.\nNew Balance: $${((balance - serviceFeeCents) / 100).toFixed(2)}` }] }
       }
 
       // Card — awaiting OTP

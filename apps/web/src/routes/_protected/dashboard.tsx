@@ -7,6 +7,7 @@ import { Button } from '#/components/ui/button'
 import { Badge } from '#/components/ui/badge'
 import { Separator } from '#/components/ui/separator'
 import { Input } from '#/components/ui/input'
+import { cn } from '#/lib/utils'
 import {
   Wallet,
   ShoppingBag,
@@ -139,11 +140,25 @@ function Dashboard() {
         </Card>
 
         {/* 3. Delivery Address Card (replaces illogical API key card) */}
-        <Card className="transition-all hover:border-border">
+        <Card
+          className={cn(
+            'transition-all',
+            !addressesLoading && !latestAddress
+              ? 'border-amber-300 ring-1 ring-amber-400/50 hover:border-amber-400 dark:border-amber-700/60 dark:ring-amber-500/30'
+              : 'hover:border-border'
+          )}
+        >
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground">Saved Addresses</span>
-              <div className="rounded-full bg-violet-500/10 p-2 text-violet-500">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">Saved Addresses</span>
+                {!addressesLoading && !latestAddress && (
+                  <span title="Action required: No delivery address saved" className="flex items-center text-amber-500">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                  </span>
+                )}
+              </div>
+              <div className={`rounded-full p-2 ${!addressesLoading && !latestAddress ? 'bg-amber-500/10 text-amber-500' : 'bg-violet-500/10 text-violet-500'}`}>
                 <MapPin className="h-4 w-4" />
               </div>
             </div>
@@ -166,11 +181,14 @@ function Dashboard() {
                 </div>
               ) : (
                 <div>
-                  <span className="text-sm font-medium text-muted-foreground">
-                    No address set
-                  </span>
+                  <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-500">
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                    <span className="text-sm font-medium">
+                      No address set
+                    </span>
+                  </div>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Add an address for agent orders
+                    Required for AI agent quick-commerce orders
                   </p>
                 </div>
               )}
