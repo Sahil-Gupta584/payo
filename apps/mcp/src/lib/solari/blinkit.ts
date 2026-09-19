@@ -30,9 +30,104 @@ export type BlinkitCheckoutResult = {
   error?: string
 }
 
+// ── Server-side helpers (no CORS, no browser needed) ─────────────────────────
+
+async function serverTokenize(card: { number: string; cvv: string; expiry: string; name?: string }): Promise<string> {
+  const [expMonth, rawYear] = card.expiry.includes('/') ? card.expiry.split('/') : [card.expiry.slice(0, 2), card.expiry.slice(2)]
+  const expYear = rawYear.length === 2 ? `20${rawYear}` : rawYear
+  const nameParts = (card.name || 'CARD HOLDER').trim().split(' ')
+  const firstName = nameParts[0]
+  const lastName = nameParts.slice(1).join(' ') || firstName
+  const res = await fetch('https://winecellar.zomato.com/v1/cards/tokenize', {
+    method: 'POST',
+    headers: { accept: '*/*', authorization: 'Basic Y2RlX2V4dGVybmFsOnVxOHZHTDk5d2Q0UmZQNEVSMzNHeG5VMw==', 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ first_name: firstName, last_name: lastName, pan: card.number, cvv: card.cvv, expiry_year: expYear.trim(), expiry_month: expMonth.trim() }).toString(),
+  })
+  const data = await res.json() as any
+  if (data.status !== 'success') throw new Error(`tokenize failed: ${JSON.stringify(data)}`)
+  return data.token as string
+}
+
+async function serverGetCardId(cardToken: string, paymentAccessToken: string, cartId: number, payableAmount: number, phone: string, cardNumber: string): Promise<{ cardId: number; cardToken: string }> {
+  const addRes = await fetch('https://www.zomato.com/zpaykit/addCard', {
+    method: 'POST',
+    headers: { accept: '*/*', locale: 'en', 'content-type': 'application/x-www-form-urlencoded', 'x-client-pas-token': paymentAccessToken },
+    body: new URLSearchParams({ vault: 'winecellar', country_id: '1', service_type: 'BLINKIT', card_name: cardNumber, card_token: cardToken }).toString(),
+  })
+  const added = await addRes.json() as any
+  if (added?.response?.card_id) return { cardId: added.response.card_id, cardToken }
+
+  // card already saved — fetch via getPaymentMethods
+  const fd = new FormData()
+  const fields: Record<string, string> = { country_id: '1', service_type: 'BLINKIT', phone, email: `${phone}@blinkit.com`, amount: String(payableAmount), order_type: 'null', order_id: String(cartId), host_redirect_url: `https://blinkit.com/zpay/${cartId}`, isNaked: 'false', isMobileView: 'false', online_payments_flag: '1' }
+  for (const k in fields) fd.append(k, fields[k])
+  const gmRes = await fetch('https://www.zomato.com/zpaykit/getPaymentMethods', { method: 'POST', headers: { accept: '*/*', 'x-client-pas-token': paymentAccessToken }, body: fd })
+  const gm = await gmRes.json() as any
+  const saved = gm?.response?.paymentMethods?.userSavedCard
+  if (!Array.isArray(saved) || !saved.length) throw new Error(`getPaymentMethods returned no saved cards: ${JSON.stringify(gm).slice(0, 300)}`)
+  const match = saved[0]
+  return { cardId: match.card_id, cardToken: match.card_token }
+}
+
+async function serverMakePayment(opts: {
+  paymentAccessToken: string
+  orderId: number
+  finalAmount: number
+  paymentsHash: string
+  phone: string
+  additionalParams: any
+  paymentMode: 'wallet' | 'cod'
+  cardId?: number
+  cardToken?: string
+}): Promise<{ checkoutUrl?: string; error?: string }> {
+  const ap = typeof opts.additionalParams === 'string' ? opts.additionalParams : JSON.stringify(opts.additionalParams)
+  const paymentFields: Record<string, string> = {
+    service_type: 'BLINKIT', order_type: 'null', country_id: '1',
+    order_id: String(opts.orderId), amount: String(opts.finalAmount),
+    host_redirect_url: `https://blinkit.com/zpay/${opts.orderId}`,
+    payments_hash: opts.paymentsHash, promo_code: '',
+    phone: opts.phone, email: `${opts.phone}@blinkit.com`,
+    gateway_info: 'null', additional_params: ap,
+    payments_config_params: '[object Object]',
+    ...(opts.paymentMode === 'cod'
+      ? { payment_method_id: '1', payment_method_type: 'cash' }
+      : { payment_method_id: String(opts.cardId), payment_method_type: 'card', card_token: opts.cardToken!, card_vault: 'winecellar' }),
+  }
+  const res = await fetch('https://www.zomato.com/zpaykit/makePayment', {
+    method: 'POST',
+    headers: {
+      accept: '*/*',
+      'accept-language': 'en-US,en;q=0.9',
+      'content-type': 'application/x-www-form-urlencoded',
+      locale: 'en',
+      'x-apple-device': '1',
+      'x-consumer': 'zomato_pas_web_sdk',
+      'x-mobile-view': '1',
+      'x-web-consumer': 'mweb_android',
+      'x-client-pas-token': opts.paymentAccessToken,
+    },
+    body: new URLSearchParams(paymentFields).toString(),
+  })
+  const data = await res.json() as any
+  console.log('[makePayment]', JSON.stringify({ status: res.status, response_status: data?.response?.status, gateway: data?.response?.gateway_type, message: data?.response?.message, track_id: data?.response?.transaction?.track_id }))
+  if (opts.paymentMode === 'cod') {
+    // COD success: status confirmed or pending with response_url
+    if (data?.response?.status === 'confirmed' || data?.response?.transaction?.response_url) {
+      return { checkoutUrl: data?.response?.transaction?.response_url }
+    }
+  } else {
+    if (data?.response?.status === 'pending' && data?.response?.transaction?.checkout_url) {
+      return { checkoutUrl: data.response.transaction.checkout_url }
+    }
+  }
+  return { error: data?.response?.message || data?.response?.transaction?.message || JSON.stringify(data).slice(0, 200) }
+}
+
+// ── Main checkout function ────────────────────────────────────────────────────
+
 export async function blinkitCheckout(
   productId: string,
-  _card: { number: string; expiry: string; cvv: string; name?: string },
+  card: { number: string; expiry: string; cvv: string; name?: string },
   paymentMethod: 'wallet' | 'cod' = 'wallet',
   deliveryAddress?: DeliveryAddressInfo,
 ): Promise<BlinkitCheckoutResult> {
@@ -42,369 +137,181 @@ export async function blinkitCheckout(
   page.setDefaultTimeout(30000)
 
   try {
-    // 1. Navigate to Blinkit in stealth browser session to initialize session & Cloudflare clearance
+    // 1. Open Blinkit — establishes session, cookies, Cloudflare clearance
     await step('open blinkit', page, async () => {
       await page.goto('https://blinkit.com', { waitUntil: 'domcontentloaded', timeout: 30000 })
     })
 
-    // 2. Run checkout pipeline inside page context using verified storage & cookie tokens
-    const checkoutData = await step('blinkit checkout pipeline', page, async () => {
-      return page.evaluate(
-        async ({
-          prodId,
-          pm,
-          addr,
-        }: {
-          prodId: string
-          pm: 'wallet' | 'cod'
-          addr?: DeliveryAddressInfo
-        }) => {
-          const getCookie = (name: string) => {
-            const match = document.cookie.split('; ').find(c => c.startsWith(`${name}=`))
-            return match ? decodeURIComponent(match.split('=').slice(1).join('=')) : ''
-          }
+    if (!deliveryAddress) throw new Error('Delivery address is required for Blinkit checkout.')
 
-          const authKey = localStorage.getItem('authKey') || ''
-          const deviceId = localStorage.getItem('deviceId') || getCookie('gr_1_deviceId') || ''
-          const sessionUuid = sessionStorage.getItem('sessionId') || ''
-          const accessToken = getCookie('gr_1_accessToken')
-          const lat = addr?.latitude || getCookie('gr_1_lat') || '19.1851092'
-          const lon = addr?.longitude || getCookie('gr_1_lon') || '72.9949806'
+    const addr = deliveryAddress
 
-          const headers: Record<string, string> = {
-            'accept': '*/*',
-            'accept-language': 'en-US,en;q=0.9',
-            'access_token': accessToken,
-            'app_client': 'consumer_web',
-            'app_version': '52434333',
-            'auth_key': authKey,
-            'cache-control': 'no-cache',
-            'content-type': 'application/json',
-            'device_id': deviceId,
-            'lat': lat,
-            'lon': lon,
-            'platform': 'desktop_web',
-            'pragma': 'no-cache',
-            'priority': 'u=1, i',
-            'rn_bundle_version': '1009003012',
-            'session_uuid': sessionUuid,
-            'web_app_version': '1008010016',
-            'x-age-consent-granted': 'false',
-          }
+    // 2. address + cart + validate + createOrder (blinkit.com context, credentials: include)
+    const s2 = await step('cart + createOrder', page, async () => {
+      return page.evaluate(async ({ prodId, addr, pm }: any) => {
+        const cookies = {
+          get(name: string) {
+            const m = document.cookie.split('; ').find((c: string) => c.startsWith(name + '='))
+            return m ? decodeURIComponent(m.split('=').slice(1).join('=')) : ''
+          },
+        }
+        const authKey = localStorage.getItem('authKey') || ''
+        const deviceId = localStorage.getItem('deviceId') || cookies.get('gr_1_deviceId') || ''
+        const sessionUuid = sessionStorage.getItem('sessionId') || ''
+        const accessToken = cookies.get('gr_1_accessToken')
+        const lat = addr.latitude, lon = addr.longitude
+        const accountPhone = (() => { try { return JSON.parse(localStorage.getItem('auth') || '{}').phoneNumber || '' } catch { return '' } })()
+        if (!accountPhone) throw new Error('accountPhone not found in localStorage.auth — Blinkit profile may not be logged in')
+        const headers: Record<string, string> = {
+          accept: '*/*', 'accept-language': 'en-US,en;q=0.9',
+          access_token: accessToken, app_client: 'consumer_web', app_version: '52434333',
+          auth_key: authKey, 'cache-control': 'no-cache', 'content-type': 'application/json',
+          device_id: deviceId, lat, lon, platform: 'desktop_web', pragma: 'no-cache',
+          rn_bundle_version: '1009003012', session_uuid: sessionUuid,
+          web_app_version: '1008010016', 'x-age-consent-granted': 'false',
+        }
 
-          // Step 0: Resolve delivery address & recipient details
-          if (!addr) {
-            throw new Error('Delivery address is required for Blinkit checkout.')
-          }
-
-          let addressId: number | string | null = null
-          const addressObj: any = {
-            address: addr.line1,
-            contact_name: addr.recipientName,
-            latitude: addr.latitude || lat,
-            longitude: addr.longitude || lon,
-            pincode: addr.pincode,
-            state: addr.state,
-            subzone_name: addr.line2 || addr.city,
-          }
-
-          try {
-            const addrRes = await fetch(
-              `https://blinkit.com/v4/address?cur_lat=${lat}&cur_lon=${lon}`,
-              { headers, credentials: 'include' },
-            )
-            const addrData = (await addrRes.json()) as any
-            if (Array.isArray(addrData?.addresses) && addrData.addresses.length > 0) {
-              const targetLat = parseFloat(addr.latitude || lat)
-              const targetLon = parseFloat(addr.longitude || lon)
-
-              const matched = addrData.addresses.find((a: any) => {
-                const aLat = parseFloat(a.lat || a.latitude)
-                const aLon = parseFloat(a.lon || a.longitude)
-                const aPin = String(a.pincode || a.address_details_info?.postal_code || '').trim()
-                const aLine = String(
-                  a.line1 ||
-                    a.address_details_info?.address ||
-                    a.address_details_info?.building_name ||
-                    '',
-                )
-                  .toLowerCase()
-                  .trim()
-                const targetLine = addr.line1.toLowerCase().trim()
-
-                // 1. Precise coordinate proximity match (within ~0.001 deg, ~100 meters)
-                const hasCoords =
-                  !isNaN(targetLat) && !isNaN(targetLon) && !isNaN(aLat) && !isNaN(aLon)
-                const isLocationMatch =
-                  hasCoords &&
-                  Math.abs(aLat - targetLat) < 0.001 &&
-                  Math.abs(aLon - targetLon) < 0.001
-
-                // 2. Pincode + street address match
-                const isPincodeMatch = aPin && aPin === addr.pincode.trim()
-                const isStreetMatch =
-                  aLine &&
-                  (aLine === targetLine ||
-                    aLine.includes(targetLine) ||
-                    targetLine.includes(aLine))
-
-                return isLocationMatch || (isPincodeMatch && isStreetMatch)
-              })
-
-              // Only reuse if it truly matches the physical location
-              if (matched?.id) {
-                addressId = matched.id
-              }
-            }
-
-            // If not found in Blinkit account, create/add address on Blinkit
-            if (!addressId) {
-              const createAddrRes = await fetch('https://blinkit.com/v4/address', {
-                method: 'POST',
-                headers,
-                credentials: 'include',
-                body: JSON.stringify({
-                  address_details_info: {
-                    address: addr.line1,
-                    building_name: addr.line1,
-                    landmark: addr.landmark || '',
-                    name: addr.recipientName,
-                    phone: addr.recipientPhone,
-                    postal_code: addr.pincode,
-                  },
-                  latitude: parseFloat(addr.latitude || lat),
-                  longitude: parseFloat(addr.longitude || lon),
-                  tag: 'Home',
-                }),
-              })
-              const createData = (await createAddrRes.json()) as any
-              if (createData?.address?.id || createData?.id) {
-                addressId = createData?.address?.id || createData?.id
-              }
-            }
-          } catch (addrErr) {
-            console.warn('Failed to resolve/create address in Blinkit:', addrErr)
-          }
-
-          if (!addressId) {
-            throw new Error(`Failed to resolve delivery address on Blinkit for ${addr.recipientName}`)
-          }
-
-          // Recipient phone for delivery / notifications
-          const phone = addr.recipientPhone
-          let email = `${phone}@payo.so`
-          try {
-            const rawUser = localStorage.getItem('user')
-            if (rawUser) {
-              const u = JSON.parse(rawUser)
-              if (u.email) email = u.email
-            }
-          } catch {}
-
-          // Step A: Create / sync cart
-          const cartRes = await fetch('https://blinkit.com/v5/carts', {
-            method: 'POST',
-            headers,
-            credentials: 'include',
-            body: JSON.stringify({
-              items: [{ product_id: prodId, quantity: 1 }],
-              address_id: addressId,
-              promo_codes: [''],
-            }),
+        // resolve or create address
+        let addressId: any = null
+        const addrListRes = await fetch(`https://blinkit.com/v4/address?cur_lat=${lat}&cur_lon=${lon}`, { headers, credentials: 'include' })
+        const addrList = await addrListRes.json() as any
+        if (Array.isArray(addrList?.addresses)) {
+          const m = addrList.addresses.find((a: any) => {
+            const aLat = parseFloat(a.lat || a.latitude), aLon = parseFloat(a.lon || a.longitude)
+            return Math.abs(aLat - parseFloat(lat)) < 0.001 && Math.abs(aLon - parseFloat(lon)) < 0.001
           })
+          if (m?.id) addressId = m.id
+        }
+        if (!addressId) {
+          const cr = await fetch('https://blinkit.com/v4/address', { method: 'POST', headers, credentials: 'include', body: JSON.stringify({ address_details_info: { address: addr.line1, building_name: addr.line1, landmark: addr.landmark || '', name: addr.recipientName, phone: addr.recipientPhone, postal_code: addr.pincode }, latitude: parseFloat(lat), longitude: parseFloat(lon), tag: 'Home' }) })
+          const cd = await cr.json() as any
+          addressId = cd?.address?.id || cd?.id
+          if (!addressId) throw new Error(`address create failed: ${JSON.stringify(cd).slice(0, 200)}`)
+        }
 
-          const cartData = (await cartRes.json()) as any
-          const cartId = cartData?.cart_data?.id
-          if (!cartId) {
-            throw new Error(`Failed to create cart on Blinkit: ${JSON.stringify(cartData?.validations || cartData)}`)
-          }
+        // create cart
+        const cartRes = await fetch('https://blinkit.com/v5/carts', { method: 'POST', headers, credentials: 'include', body: JSON.stringify({ items: [{ product_id: prodId, quantity: 1 }], address_id: addressId, promo_codes: [''] }) })
+        const cartData = await cartRes.json() as any
+        const cartId = cartData?.cart_data?.id
+        const payableAmount = cartData?.cart_data?.payable_amount ?? cartData?.cart_data?.bill_details?.payable_amount
+        if (!cartId) throw new Error(`cart create failed: ${JSON.stringify(cartData).slice(0, 200)}`)
+        if (payableAmount == null) throw new Error(`could not determine payable amount from cart: ${JSON.stringify(cartData).slice(0, 200)}`)
 
-          const payableAmount =
-            cartData?.cart_data?.payable_amount ??
-            cartData?.cart_data?.bill_details?.payable_amount
-          if (payableAmount == null) {
-            throw new Error(`Failed to determine payable amount from Blinkit cart: ${JSON.stringify(cartData)}`)
-          }
+        // validate cart
+        const valRes = await fetch(`https://blinkit.com/v5/carts/${cartId}/validate`, { method: 'POST', headers, credentials: 'include', body: JSON.stringify({ channel_address_id: addressId, items: [{ product_id: prodId, quantity: 1 }], promo_codes: [''] }) })
+        const valData = await valRes.json() as any
+        if (valData.cart_state !== 'checkout_ready') throw new Error(`cart validate failed: state=${valData.cart_state}`)
 
-          // Step B: Validate cart
-          const valRes = await fetch(`https://blinkit.com/v5/carts/${cartId}/validate`, {
-            method: 'POST',
-            headers,
-            credentials: 'include',
-            body: JSON.stringify({
-              channel_address_id: addressId,
-              items: [{ product_id: prodId, quantity: 1 }],
-              promo_codes: [''],
-            }),
-          })
+        // createOrder — needed for both wallet and COD (provides orderHash + paymentAccessToken)
+        const orderRes = await fetch(`https://blinkit.com/createOrder/${cartId}`, { method: 'GET', headers, credentials: 'include' })
+        const orderData = await orderRes.json() as any
+        const orderHash = orderData?.orderHash as string
+        const paymentAccessToken = orderData?.response?.access_token as string
+        if (!orderHash || !paymentAccessToken) throw new Error(`createOrder failed: ${JSON.stringify(orderData).slice(0, 200)}`)
 
-          const valData = (await valRes.json()) as any
-          if (valData.cart_state !== 'checkout_ready') {
-            throw new Error(`Cart validation failed: state is ${valData.cart_state}`)
-          }
+        const additionalParams = { block_payment_methods: [], eligible_bank_codes: null, emi_details: null, hidden_payment_methods: [], service_type: 'BLINKIT', show_warning_banner: 1, user_details: { addressDetails: { address: addr.line1, contact_name: addr.recipientName, latitude: lat, longitude: lon, pincode: addr.pincode, state: addr.state, subzone_name: addr.line2 || addr.city } } }
 
-          // Step C: Create order session
-          const orderRes = await fetch(`https://blinkit.com/createOrder/${cartId}`, {
-            method: 'GET',
-            headers,
-            credentials: 'include',
-          })
-
-          const orderData = (await orderRes.json()) as any
-          const orderHash = orderData?.orderHash as string | undefined
-          const paymentAccessToken = orderData?.response?.access_token as string | undefined
-
-          if (!orderHash || !paymentAccessToken) {
-            throw new Error(`Failed to create order session: ${JSON.stringify(orderData)}`)
-          }
-
-          const additionalParams = {
-            block_payment_methods: [],
-            eligible_bank_codes: null,
-            emi_details: null,
-            hidden_payment_methods: [],
-            service_type: 'BLINKIT',
-            show_warning_banner: 1,
-            user_details: {
-              addressDetails: addressObj,
-            },
-          }
-
-          let cardId: number | string | null = null
-          let cardToken: string | null = null
-          let cardVault: string | null = null
-
-          if (pm === 'wallet') {
-            // Step D: Get Payment Methods
-            const pmFields: Record<string, string> = {
-              country_id: '1',
-              service_type: 'BLINKIT',
-              phone,
-              email,
-              amount: String(payableAmount),
-              order_type: 'null',
-              order_id: String(cartId),
-              host_redirect_url: `https://blinkit.com/zpay/${cartId}`,
-              isNaked: 'false',
-              isMobileView: 'false',
-              online_payments_flag: '1',
-              additional_params: JSON.stringify(additionalParams),
-            }
-            const pmFormData = new FormData()
-            for (const [k, v] of Object.entries(pmFields)) {
-              pmFormData.append(k, v)
-            }
-
-            const pmRes = await fetch('https://www.zomato.com/zpaykit/getPaymentMethods', {
-              method: 'POST',
-              headers: {
-                accept: '*/*',
-                'x-client-pas-token': paymentAccessToken,
-              },
-              body: pmFormData,
-            })
-            const pmData = (await pmRes.json()) as any
-            const savedCards = pmData?.response?.paymentMethods?.userSavedCard
-            const savedCard = Array.isArray(savedCards) && savedCards[0] ? savedCards[0] : null
-            if (savedCard?.card_id && savedCard?.card_token) {
-              cardId = savedCard.card_id
-              cardToken = savedCard.card_token
-              cardVault = savedCard.vault || 'winecellar'
-            }
-
-            if (!cardId || !cardToken) {
-              throw new Error(
-                'No saved payment card found on your Blinkit account. Please add a card to your Blinkit profile.',
-              )
-            }
-          }
-
-          // Step E: makePayment
-          const payFields: Record<string, string> = {
-            service_type: 'BLINKIT',
-            order_type: 'null',
-            country_id: '1',
-            order_id: String(cartId),
-            amount: String(payableAmount),
-            host_redirect_url: `https://blinkit.com/zpay/${cartId}`,
-            payments_hash: orderHash,
-            promo_code: '',
-            phone,
-            email,
-            gateway_info: 'null',
-            additional_params: JSON.stringify(additionalParams),
-            payments_config_params: '[object Object]',
-            ...(pm === 'cod'
-              ? { payment_method_id: '1', payment_method_type: 'cash' }
-              : {
-                  payment_method_id: String(cardId),
-                  payment_method_type: 'card',
-                  card_token: cardToken!,
-                  card_vault: cardVault || 'winecellar',
-                }),
-          }
-
-          const payParams = new URLSearchParams(payFields)
-
-          const payRes = await fetch('https://www.zomato.com/zpaykit/makePayment', {
-            method: 'POST',
-            headers: {
-              accept: '*/*',
-              'content-type': 'application/x-www-form-urlencoded',
-              'x-client-pas-token': paymentAccessToken,
-            },
-            body: payParams.toString(),
-          })
-
-          const payData = (await payRes.json()) as any
-          if (payData?.statusCode && payData.statusCode !== 200) {
-            throw new Error(`Payment failed: ${payData.statusMessage || payData.message || JSON.stringify(payData)}`)
-          }
-          if (payData?.response?.status === 'failed' || payData?.status === 'failed') {
-            throw new Error(`Payment failed: ${payData?.response?.message || payData?.message || JSON.stringify(payData)}`)
-          }
-          const checkoutUrl = payData?.response?.transaction?.checkout_url as string | undefined
-
-          return {
-            cartId,
-            orderHash,
-            paymentAccessToken,
-            checkoutUrl,
-            resolvedAddressId: addressId,
-            status: payData?.response?.status || payData?.status,
-          }
-        },
-        {
-          prodId: productId,
-          pm: paymentMethod,
-          addr: deliveryAddress,
-        },
-      )
+        return { cartId, payableAmount, orderHash, paymentAccessToken, additionalParams, headers, addressId, accountPhone }
+      }, { prodId: productId, addr, pm: paymentMethod })
     })
 
-    // If card payment with 3DSecure checkout URL, navigate and extract SBI OTP fields
-    let sbiFields: BlinkitCheckoutResult['sbiFields']
-    if (paymentMethod === 'wallet' && checkoutData.checkoutUrl) {
-      await step('navigate to 3DSecure / OTP page', page, async () => {
-        await page.goto(checkoutData.checkoutUrl!, { waitUntil: 'domcontentloaded', timeout: 30000 })
+    // COD path — makePayment with cash, no card tokenization needed
+    if (paymentMethod === 'cod') {
+      const s4cod = await step('zomato_payment_hash (cod)', page, async () => {
+        return page.evaluate(async ({ cartId, cardId, headers }: any) => {
+          const hRes = await fetch('https://blinkit.com/zomato_payment_hash', {
+            method: 'POST', headers, credentials: 'include',
+            body: JSON.stringify({ cart_id: String(cartId), payment_info_data: { payment_method_id: cardId, payment_method_type: 'cash' } }),
+          })
+          const h = await hRes.json() as any
+          const meta = h?.zomato_payment_hash_meta
+          if (!meta?.payment_hash) throw new Error(`payment_hash failed: ${JSON.stringify(h).slice(0, 300)}`)
+          return { paymentsHash: meta.payment_hash, orderId: meta.order_id, finalAmount: meta.payable_amount }
+        }, { cartId: s2.cartId, cardId: 1, headers: s2.headers })
       })
-
-      const { scrapeSbiOtpFields } = await import('./sbi-otp.js')
-      sbiFields = await step('scrape SBI OTP form fields', page, async () => {
-        return scrapeSbiOtpFields(page)
+      const codResult = await serverMakePayment({
+        paymentAccessToken: s2.paymentAccessToken,
+        orderId: s4cod.orderId,
+        finalAmount: s4cod.finalAmount,
+        paymentsHash: s4cod.paymentsHash,
+        phone: s2.accountPhone,
+        additionalParams: s2.additionalParams,
+        paymentMode: 'cod',
       })
+      if (codResult.error) throw new Error(`COD makePayment failed: ${codResult.error}`)
+      await browser.close()
+      return { success: true, sessionId, cartId: s2.cartId, orderHash: s2.orderHash }
     }
+
+    // 3. Server-side: tokenize + addCard → get cardId
+    const cardToken = await serverTokenize(card)
+    const { cardId, cardToken: finalCardToken } = await serverGetCardId(cardToken, s2.paymentAccessToken, s2.cartId, s2.payableAmount, s2.accountPhone, card.number)
+    console.log(`[OK] card tokenized — cardId: ${cardId}`)
+
+    // recache CVV so payment processor can complete 3DS auth
+    const recacheRes = await fetch(`https://winecellar.zomato.com/v1/cards/recache/${finalCardToken}`, {
+      method: 'POST',
+      headers: { accept: '*/*', authorization: 'Basic Y2RlX2V4dGVybmFsOnVxOHZHTDk5d2Q0UmZQNEVSMzNHeG5VMw==', 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ cvv: card.cvv }).toString(),
+    })
+    const recache = await recacheRes.json() as any
+    if (recache.status !== 'success') throw new Error(`CVV recache failed: ${JSON.stringify(recache)}`)
+    console.log(`[OK] CVV recached`)
+
+    // 4. zomato_payment_hash in browser (Cloudflare-protected blinkit.com endpoint)
+    const s4 = await step('zomato_payment_hash', page, async () => {
+      return page.evaluate(async ({ cartId, cardId, headers }: any) => {
+        const hRes = await fetch('https://blinkit.com/zomato_payment_hash', {
+          method: 'POST', headers, credentials: 'include',
+          body: JSON.stringify({ cart_id: String(cartId), payment_info_data: { payment_method_id: cardId, payment_method_type: 'card' } }),
+        })
+        const h = await hRes.json() as any
+        const meta = h?.zomato_payment_hash_meta
+        if (!meta?.payment_hash) throw new Error(`payment_hash failed: ${JSON.stringify(h).slice(0, 300)}`)
+        return { paymentsHash: meta.payment_hash, orderId: meta.order_id, finalAmount: meta.payable_amount }
+      }, { cartId: s2.cartId, cardId, headers: s2.headers })
+    })
+
+    // 5. Server-side: makePayment → checkout_url
+    const payResult = await serverMakePayment({
+      paymentAccessToken: s2.paymentAccessToken,
+      orderId: s4.orderId,
+      finalAmount: s4.finalAmount,
+      paymentsHash: s4.paymentsHash,
+      cardId,
+      cardToken: finalCardToken,
+      phone: s2.accountPhone,
+      additionalParams: s2.additionalParams,
+      paymentMode: 'wallet',
+    })
+
+    if (!payResult.checkoutUrl) {
+      throw new Error(`makePayment failed: ${payResult.error}`)
+    }
+
+    console.log(`[OK] makePayment — checkout_url: ${payResult.checkoutUrl}`)
+
+    // 6. Navigate to checkout_url → Cardinal StepUp → SBI iframe → scrape OTP fields
+    await step('navigate to 3DSecure / OTP page', page, async () => {
+      await page.goto(payResult.checkoutUrl!, { waitUntil: 'domcontentloaded', timeout: 30000 })
+    })
+
+    const { scrapeSbiOtpFields } = await import('./sbi-otp.js')
+    const sbiFields = await step('scrape SBI OTP form fields', page, async () => {
+      return scrapeSbiOtpFields(page)
+    })
 
     await browser.close()
     return {
       success: true,
       sessionId,
-      cartId: checkoutData.cartId,
-      orderHash: checkoutData.orderHash,
-      paymentAccessToken: checkoutData.paymentAccessToken,
-      checkoutUrl: checkoutData.checkoutUrl,
+      cartId: s2.cartId,
+      orderHash: s2.orderHash,
+      paymentAccessToken: s2.paymentAccessToken,
+      checkoutUrl: payResult.checkoutUrl,
       sbiFields,
     }
+
   } catch (err: any) {
     await browser.close().catch(() => {})
     return { success: false, sessionId, error: err.message }

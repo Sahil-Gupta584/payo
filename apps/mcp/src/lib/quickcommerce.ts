@@ -94,6 +94,7 @@ export async function getItemDetail(
       }
     }
 
+    console.warn(`[getItemDetail] API returned non-success for item ${itemId} on ${platform}:`, JSON.stringify(data).slice(0, 300))
     return { success: false, item: null }
   } catch (err: any) {
     console.warn(`[getItemDetail] Failed to fetch item ${itemId} from ${platform}:`, err.message)

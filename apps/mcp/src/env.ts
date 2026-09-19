@@ -1,9 +1,5 @@
-try {
-  const { config } = await import('dotenv')
-  config()
-} catch {
-  // dotenv is optional in production environments
-}
+import { config } from 'dotenv'
+config()
 import { z } from 'zod'
 
 const envSchema = z.object({

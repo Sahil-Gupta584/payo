@@ -4,13 +4,13 @@ import { env } from '../../env.js'
 
 export async function launchBrowser(profileId: string) {
   const client = new Solari({ apiKey: env.SOLARI_API_KEY, baseUrl: 'https://api.getsolari.com' })
-  const browser = await client.launch({ stealth: true, captcha: true, recording: true, profileId })
+  const browser = await client.launch({ stealth: true, captcha: true, recording: true, profileId, proxy: { country: 'in' } })
   return { client, browser, sessionId: browser.id }
 }
 
 export async function createPersistentSession(profileId: string) {
   const client = new Solari({ apiKey: env.SOLARI_API_KEY, baseUrl: 'https://api.getsolari.com' })
-  const session = await client.sessions.create({ stealth: true, captcha: true, recording: true, profileId })
+  const session = await client.sessions.create({ stealth: true, captcha: true, recording: true, profileId, proxy: { country: 'in' } })
   const { chromium } = await import('patchright-core')
   // Use cdpEndpoint + connectOverCDP to preserve profile-seeded context (wsEndpoint creates empty context)
   const browser = await chromium.connectOverCDP(session.cdpEndpoint)

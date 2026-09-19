@@ -1,6 +1,5 @@
+import './env.js' // must be first — loads dotenv before @repo/db initializes
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
-import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
 import { db, apiKey, user as userTable, order, orderHistory, orderPaymentSession, walletHistory, userAddress, session as sessionTable, type User } from '@repo/db'
 import { eq, desc, and, gte, sql } from 'drizzle-orm'
@@ -35,7 +34,7 @@ export async function resolveUserFromAuth(authHeader?: string | null, cookieHead
     .limit(1)
 
   if (keyRow) {
-    await db.update(apiKey).set({ lastUsedAt: new Date() }).where(eq(apiKey.keyHash, hash)).catch(() => {})
+    await db.update(apiKey).set({ lastUsedAt: new Date() }).where(eq(apiKey.keyHash, hash)).catch(() => { })
     const foundUser = await db.query.user.findFirst({ where: (u, { eq }) => eq(u.id, keyRow.userId) })
     return foundUser ?? null
   }
@@ -73,18 +72,25 @@ export function createServer(user: User | null) {
 
       const effectiveLimit = limit ?? 15
 
-      const userAddr = await db.query.userAddress.findFirst({
-        where: and(eq(userAddress.userId, user.id), eq(userAddress.id, address_id)),
-      })
+      let userAddr: typeof userAddress.$inferSelect | undefined
+      try {
+        userAddr = await db.query.userAddress.findFirst({
+          where: and(eq(userAddress.userId, user.id), eq(userAddress.id, address_id)),
+        })
+      } catch {
+        // invalid UUID or DB error — treat as not found
+      }
 
       if (!userAddr) {
+        // Check if user has ANY addresses at all
+        const anyAddr = await db.query.userAddress.findFirst({
+          where: eq(userAddress.userId, user.id),
+        })
+        const msg = anyAddr
+          ? `Address '${address_id}' not found. Call list_addresses to get valid address IDs.`
+          : `No delivery addresses found. Ask the user to add a delivery address in the Payo dashboard (Settings → Delivery Addresses) before searching products.`
         return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Error: Address with ID '${address_id}' not found. Please call list_addresses to find available address IDs, or add one in the Payo dashboard under Settings → Delivery Addresses.`,
-            },
-          ],
+          content: [{ type: 'text' as const, text: msg }],
           isError: true as const,
         }
       }
@@ -115,7 +121,7 @@ export function createServer(user: User | null) {
           id: p.id,
           name: p.name,
           brand: p.brand,
-          platform: p.platform?.name?.toLowerCase() === 'swiggy' ? 'instamart' : (p.platform?.name?.toLowerCase() || 'instamart'),
+          platform: p.platform?.name?.toLowerCase() === 'swiggy' ? 'instamart' : 'blinkit', // pass this exact value to initiate_order
           price_inr: p.offer_price,
           price_usd_cents: await inrToUsdCents(Number(p.offer_price) || 0),
           mrp_inr: p.mrp,
@@ -176,13 +182,12 @@ export function createServer(user: User | null) {
       inputSchema: {
         product_id: z.string().trim().describe('id from search_products'),
         product_name: z.string().trim(),
-        platform: z.enum(['instamart', 'blinkit']).default('instamart').describe('Platform: instamart or blinkit (default instamart)'),
-        amount: z.number().int().positive().describe('price in USD cents from search_products.price_usd_cents ($1 = 100 cents)'),
+        platform: z.enum(['instamart', 'blinkit']).describe('Must match the platform field from search_products result. Passing the wrong platform will cause price verification to fail.'),
         payment_method: z.enum(['wallet', 'cod']).default('wallet').describe('wallet = pay from wallet balance (OTP required), cod = cash on delivery (pay at door)'),
         address_id: z.string().trim().describe('ID of saved address from list_addresses to deliver to (required)'),
       },
     },
-    async ({ product_id, product_name, platform, amount, payment_method, address_id }) => {
+    async ({ product_id, product_name, platform, payment_method, address_id }) => {
       if (!user) return unauthed
 
       const targetPlatform = platform ?? 'instamart'
@@ -228,10 +233,14 @@ export function createServer(user: User | null) {
         }
       }
 
-      const finalAmount =
-        priceVerification.verified && priceVerification.priceCents > 0
-          ? priceVerification.priceCents
-          : amount
+      if (!priceVerification.verified || priceVerification.priceCents <= 0) {
+        return {
+          content: [{ type: 'text' as const, text: `❌ Could not verify price for "${product_name}". Please try again.` }],
+          isError: true,
+        }
+      }
+
+      const finalAmount = priceVerification.priceCents
 
       if (pm === 'wallet') {
         const freshUser = await db.query.user.findFirst({ where: eq(userTable.id, user.id) })
@@ -327,7 +336,7 @@ export function createServer(user: User | null) {
         await db.insert(orderHistory).values({ id: orderId as any, userId: user.id, platform: targetPlatform, productId: product_id, productName: product_name, amount: finalAmount, status: 'awaiting_otp', paymentMethod: pm })
       }
       const deliveryInfo = `\nDelivering to: ${chosenAddress.label} (${chosenAddress.recipientName} - ${chosenAddress.recipientPhone})\nAddress: ${chosenAddress.line1}, ${chosenAddress.city}`
-      return { content: [{ type: 'text' as const, text: `Order initiated on ${targetPlatform} — OTP sent to your mobile number.\n\nOrder ID: ${orderId}\nProduct: ${product_name} ($${(finalAmount / 100).toFixed(2)})${deliveryInfo}\n\nTo complete the booking, please share the 6-digit OTP and I will confirm the order via confirm_order.` }] }
+      return { content: [{ type: 'text' as const, text: `Order initiated on ${targetPlatform} — OTP sent to your mobile number.\n\nOrder ID: ${orderId}\nProduct: ${product_name} ($${(finalAmount / 100).toFixed(2)})${deliveryInfo}\n\nTo complete the booking, please share the 6-digit OTP and I will confirm the order via confirm_order. OTP expires in 10min You can share!` }] }
     },
   )
 
@@ -346,10 +355,10 @@ export function createServer(user: User | null) {
       const effectiveLimit = limit ?? 10
       const rows = query
         ? await db.query.orderHistory.findMany({
-            where: (o, { and: a, eq: e, ilike }) => a(e(o.userId, user.id), ilike(o.productName, `%${query}%`)),
-            orderBy: desc(orderHistory.createdAt),
-            limit: effectiveLimit,
-          })
+          where: (o, { and: a, eq: e, ilike }) => a(e(o.userId, user.id), ilike(o.productName, `%${query}%`)),
+          orderBy: desc(orderHistory.createdAt),
+          limit: effectiveLimit,
+        })
         : await db.query.orderHistory.findMany({ where: eq(orderHistory.userId, user.id), orderBy: desc(orderHistory.createdAt), limit: effectiveLimit })
       const compact = rows.map((r: any) => ({ id: r.id, productId: r.productId, productName: r.productName, amount: `$${(r.amount / 100).toFixed(2)}`, amountCents: r.amount, status: r.status, createdAt: r.createdAt }))
       return { content: [{ type: 'text' as const, text: JSON.stringify(compact, null, 2) }] }
@@ -395,27 +404,3 @@ export function createServer(user: User | null) {
   return server
 }
 
-export async function handleMcpPayload(jsonRpcRequest: JSONRPCMessage, user: User | null): Promise<JSONRPCMessage> {
-  const server = createServer(user)
-  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
-
-  const responsePromise = new Promise<JSONRPCMessage>((resolve) => {
-    clientTransport.onmessage = (message: JSONRPCMessage) => resolve(message)
-  })
-
-  await server.connect(serverTransport)
-  await clientTransport.start()
-  await serverTransport.start()
-  await clientTransport.send(jsonRpcRequest)
-
-  const timeoutPromise = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error('MCP tool execution timed out after 120s')), 120_000),
-  )
-
-  const responseData = await Promise.race([responsePromise, timeoutPromise])
-
-  await clientTransport.close()
-  await serverTransport.close()
-
-  return responseData
-}
