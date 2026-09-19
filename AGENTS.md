@@ -62,26 +62,3 @@ npm run lint             # lint
 |---|---|---|---|
 | Flipkart | QuickCommerce API | Solari browser + direct payments API | ✅ Working (stops at OTP) |
 | Swiggy Instamart | QuickCommerce API | Solari browser | 🚧 Cart only (checkout pending recon) |
-
-## MCP tools
-
-| Tool | Description |
-|---|---|
-| `search_products` | Search Flipkart or Swiggy via QuickCommerce API |
-| `get_wallet_balance` | Returns user's wallet balance |
-| `initiate_order` | Places order — checks wallet, runs automation, returns OTP page |
-| `list_orders` | Lists user's recent orders |
-
-## MCP install (Global)
-
-```bash
-# OpenCode CLI (Global)
-opencode mcp add payo --url https://mcp.yourdomain.com/mcp --header "Authorization=Bearer YOUR_API_KEY" --global
-
-# Claude Code CLI (Global)
-claude mcp add --transport http payo https://mcp.yourdomain.com/mcp --header "Authorization: Bearer YOUR_API_KEY" --scope user
-```
-
-## Invite-only access
-
-Add email to `invite` table in DB to allow login. No UI — insert directly via drizzle studio (`npm run db:studio`).

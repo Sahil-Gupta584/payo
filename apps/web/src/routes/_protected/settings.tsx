@@ -284,30 +284,34 @@ function ApiKeysTab() {
 
   const [copiedClaudeCli, setCopiedClaudeCli] = useState(false)
 
+  const getMcpUrl = () => {
+    return import.meta.env.VITE_MCP_SERVER_URL || 'https://nodejs-3140-4000.prg1.zerops.app'
+  }
+
   const copyOpencode = (key: string) => {
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://payo.so'
-    const snippet = `opencode mcp add payo --url ${origin}/mcp --header "Authorization=Bearer ${key}" --global`
+    const mcpUrl = getMcpUrl()
+    const snippet = `opencode mcp add payo --url ${mcpUrl}/mcp --header "Authorization=Bearer ${key}" --global`
     navigator.clipboard.writeText(snippet)
     setCopiedKey(key)
     setTimeout(() => setCopiedKey(null), 2000)
   }
 
   const copyClaudeCli = (key: string) => {
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://payo.so'
-    const snippet = `claude mcp add --transport http payo ${origin}/mcp --header "Authorization: Bearer ${key}" --scope user`
+    const mcpUrl = getMcpUrl()
+    const snippet = `claude mcp add --transport http payo ${mcpUrl}/mcp --header "Authorization: Bearer ${key}" --scope user`
     navigator.clipboard.writeText(snippet)
     setCopiedClaudeCli(true)
     setTimeout(() => setCopiedClaudeCli(false), 2000)
   }
 
   const copyClaudeJson = (key: string) => {
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://payo.so'
+    const mcpUrl = getMcpUrl()
     const json = JSON.stringify(
       {
         mcpServers: {
           payo: {
             type: 'http',
-            url: `${origin}/mcp`,
+            url: `${mcpUrl}/mcp`,
             headers: {
               Authorization: `Bearer ${key}`,
             },

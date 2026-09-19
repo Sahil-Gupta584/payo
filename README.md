@@ -77,10 +77,10 @@ npm run check-types      # tsc --noEmit
 
 ```bash
 # OpenCode CLI (Global)
-opencode mcp add payo --url https://your-app.vercel.app/mcp --header "Authorization=Bearer YOUR_API_KEY" --global
+opencode mcp add payo --url https://nodejs-3140-4000.prg1.zerops.app/mcp --header "Authorization=Bearer YOUR_API_KEY" --global
 
 # Claude Code CLI (Global)
-claude mcp add --transport http payo https://your-app.vercel.app/mcp --header "Authorization: Bearer YOUR_API_KEY" --scope user
+claude mcp add --transport http payo https://nodejs-3140-4000.prg1.zerops.app/mcp --header "Authorization: Bearer YOUR_API_KEY" --scope user
 ```
 
 ## Invite-only access
