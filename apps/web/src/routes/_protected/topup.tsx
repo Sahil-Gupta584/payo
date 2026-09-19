@@ -125,6 +125,8 @@ function TopupPage() {
                     $
                   </span>
                   <Input
+                    name="amount"
+                    autoComplete="off"
                     type="number"
                     min="1"
                     step="1"

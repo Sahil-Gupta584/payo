@@ -41,6 +41,7 @@ Monorepo using npm workspaces & Turborepo:
 7. **Solari scripts**: One file per platform — `src/lib/solari/flipkart.ts`, `src/lib/solari/instamart.ts`. Shared helpers in `src/lib/solari/index.ts`.
 8. **Route file size**: If a route file exceeds ~500 lines, extract into a folder with sub-components.
 9. **Ask, don't assume**: If a fix has multiple valid options or the intent is unclear, ask the user first instead of guessing.
+10. **Inputs & Autofill**: Always provide semantic `name` and standard `autoComplete` attributes on `<Input>` elements (`name="name" autoComplete="name"`, `name="email" autoComplete="email"`, etc.) so browser autofill works consistently.
 
 ## Commands
 
@@ -61,22 +62,3 @@ npm run lint             # lint
 |---|---|---|---|
 | Flipkart | QuickCommerce API | Solari browser + direct payments API | ✅ Working (stops at OTP) |
 | Swiggy Instamart | QuickCommerce API | Solari browser | 🚧 Cart only (checkout pending recon) |
-
-## MCP tools
-
-| Tool | Description |
-|---|---|
-| `search_products` | Search Flipkart or Swiggy via QuickCommerce API |
-| `get_wallet_balance` | Returns user's wallet balance |
-| `initiate_order` | Places order — checks wallet, runs automation, returns OTP page |
-| `list_orders` | Lists user's recent orders |
-
-## MCP install (Claude Desktop)
-
-```bash
-opencode mcp add payo --url https://mcp.yourdomain.com/mcp --header "Authorization=Bearer YOUR_API_KEY"
-```
-
-## Invite-only access
-
-Add email to `invite` table in DB to allow login. No UI — insert directly via drizzle studio (`npm run db:studio`).

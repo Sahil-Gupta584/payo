@@ -177,6 +177,8 @@ function GeneralTab({ user }: { user: any }) {
               </label>
               <Input
                 id="name-input"
+                name="name"
+                autoComplete="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your full name"
@@ -189,6 +191,8 @@ function GeneralTab({ user }: { user: any }) {
               </label>
               <Input
                 id="email-input"
+                name="email"
+                autoComplete="email"
                 value={user.email}
                 disabled
                 className="opacity-60 cursor-not-allowed bg-muted/50"
@@ -278,22 +282,36 @@ function ApiKeysTab() {
     }),
   )
 
+  const [copiedClaudeCli, setCopiedClaudeCli] = useState(false)
+
+  const getMcpUrl = () => {
+    return import.meta.env.VITE_MCP_SERVER_URL || 'https://nodejs-3140-4000.prg1.zerops.app'
+  }
+
   const copyOpencode = (key: string) => {
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://payo.so'
-    const snippet = `opencode mcp add payo --url ${origin}/mcp --header "Authorization=Bearer ${key}"`
+    const mcpUrl = getMcpUrl()
+    const snippet = `opencode mcp add payo --url ${mcpUrl}/mcp --header "Authorization=Bearer ${key}" --global`
     navigator.clipboard.writeText(snippet)
     setCopiedKey(key)
     setTimeout(() => setCopiedKey(null), 2000)
   }
 
+  const copyClaudeCli = (key: string) => {
+    const mcpUrl = getMcpUrl()
+    const snippet = `claude mcp add --transport http payo ${mcpUrl}/mcp --header "Authorization: Bearer ${key}" --scope user`
+    navigator.clipboard.writeText(snippet)
+    setCopiedClaudeCli(true)
+    setTimeout(() => setCopiedClaudeCli(false), 2000)
+  }
+
   const copyClaudeJson = (key: string) => {
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://payo.so'
+    const mcpUrl = getMcpUrl()
     const json = JSON.stringify(
       {
         mcpServers: {
           payo: {
             type: 'http',
-            url: `${origin}/mcp`,
+            url: `${mcpUrl}/mcp`,
             headers: {
               Authorization: `Bearer ${key}`,
             },
@@ -321,6 +339,7 @@ function ApiKeysTab() {
           {/* Create API Key Form */}
           <div className="flex gap-2">
             <Input
+              name="keyName"
               placeholder="Key label (e.g. claude-desktop, work-laptop)"
               value={keyName}
               onChange={(e) => setKeyName(e.target.value)}
@@ -357,7 +376,16 @@ function ApiKeysTab() {
                   onClick={() => copyOpencode(newKey)}
                 >
                   <Copy className="mr-1.5 h-3.5 w-3.5" />
-                  {copiedKey === newKey ? 'Copied CLI Command!' : 'Copy OpenCode CLI Command'}
+                  {copiedKey === newKey ? 'Copied OpenCode CLI!' : 'Copy OpenCode CLI (--global)'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-emerald-300 bg-white text-emerald-800 hover:bg-emerald-100/70"
+                  onClick={() => copyClaudeCli(newKey)}
+                >
+                  <Copy className="mr-1.5 h-3.5 w-3.5" />
+                  {copiedClaudeCli ? 'Copied Claude CLI!' : 'Copy Claude Code CLI (--scope user)'}
                 </Button>
                 <Button
                   size="sm"
@@ -423,16 +451,34 @@ function ApiKeysTab() {
         </CardContent>
       </Card>
 
-      {/* Claude Desktop Config Instructions */}
+      {/* Client Setup Instructions */}
       <Card variant="secondary">
         <CardHeader>
-          <CardTitle className="text-sm font-semibold">Claude Desktop Configuration</CardTitle>
+          <CardTitle className="text-sm font-semibold">Agent & Client Setup</CardTitle>
           <CardDescription>
-            Add this to your <code className="text-xs">claude_desktop_config.json</code>:
+            Install Payo MCP globally across your agent workflows.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <pre className="overflow-x-auto rounded-lg border border-border bg-muted/60 p-4 font-mono text-xs text-foreground leading-relaxed">{`{
+        <CardContent className="space-y-4">
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+              OpenCode CLI (Global)
+            </p>
+            <pre className="overflow-x-auto rounded-lg border border-border bg-muted/60 p-3 font-mono text-xs text-foreground leading-relaxed">{`opencode mcp add payo --url ${typeof window !== 'undefined' ? window.location.origin : 'https://payo.so'}/mcp --header "Authorization=Bearer YOUR_API_KEY" --global`}</pre>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+              Claude Code CLI (Global)
+            </p>
+            <pre className="overflow-x-auto rounded-lg border border-border bg-muted/60 p-3 font-mono text-xs text-foreground leading-relaxed">{`claude mcp add --transport http payo ${typeof window !== 'undefined' ? window.location.origin : 'https://payo.so'}/mcp --header "Authorization: Bearer YOUR_API_KEY" --scope user`}</pre>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+              Claude Desktop (<code className="lowercase">claude_desktop_config.json</code>)
+            </p>
+            <pre className="overflow-x-auto rounded-lg border border-border bg-muted/60 p-3 font-mono text-xs text-foreground leading-relaxed">{`{
   "mcpServers": {
     "payo": {
       "type": "http",
@@ -443,6 +489,7 @@ function ApiKeysTab() {
     }
   }
 }`}</pre>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -761,6 +808,7 @@ function AddressForm({
           </div>
         </div>
         <Input
+          name="label"
           placeholder="e.g. Home, Office, Vacation House, Mom's Place"
           value={label}
           onChange={(e) => setLabel(e.target.value)}
@@ -772,6 +820,8 @@ function AddressForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">Recipient Name *</label>
           <Input
+            name="recipientName"
+            autoComplete="name"
             placeholder="Recipient full name"
             value={recipientName}
             onChange={(e) => setRecipientName(e.target.value)}
@@ -780,6 +830,9 @@ function AddressForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">Phone Number *</label>
           <Input
+            name="recipientPhone"
+            autoComplete="tel"
+            type="tel"
             placeholder="10-digit mobile number"
             value={recipientPhone}
             onChange={(e) => setRecipientPhone(e.target.value.replace(/\D/g, ''))}
@@ -791,6 +844,8 @@ function AddressForm({
       <div className="flex flex-col gap-1.5">
         <label className="text-xs font-medium text-muted-foreground">Flat / House No. / Building / Floor *</label>
         <Input
+          name="line1"
+          autoComplete="address-line1"
           placeholder="e.g. Flat 302, Building 4B, Sunrise Heights"
           value={line1}
           onChange={(e) => setLine1(e.target.value)}
@@ -801,6 +856,8 @@ function AddressForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">Street / Sector / Area</label>
           <Input
+            name="line2"
+            autoComplete="address-line2"
             placeholder="e.g. Indiranagar, Sector 14"
             value={line2}
             onChange={(e) => setLine2(e.target.value)}
@@ -809,6 +866,7 @@ function AddressForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">Landmark (Optional)</label>
           <Input
+            name="landmark"
             placeholder="e.g. Near Metro Station"
             value={landmark}
             onChange={(e) => setLandmark(e.target.value)}
@@ -820,6 +878,8 @@ function AddressForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">City *</label>
           <Input
+            name="city"
+            autoComplete="address-level2"
             placeholder="City"
             value={city}
             onChange={(e) => setCity(e.target.value)}
@@ -828,6 +888,8 @@ function AddressForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">State *</label>
           <Input
+            name="state"
+            autoComplete="address-level1"
             placeholder="State"
             value={state}
             onChange={(e) => setState(e.target.value)}
@@ -836,6 +898,8 @@ function AddressForm({
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-medium text-muted-foreground">Pincode *</label>
           <Input
+            name="pincode"
+            autoComplete="postal-code"
             placeholder="6-digit pincode"
             value={pincode}
             onChange={(e) => setPincode(e.target.value)}
@@ -869,12 +933,16 @@ function AddressForm({
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <Input
+            name="latitude"
+            autoComplete="off"
             placeholder="Latitude (e.g. 19.1851092)"
             value={latitude}
             onChange={(e) => setLatitude(e.target.value)}
             className="font-mono text-xs bg-white"
           />
           <Input
+            name="longitude"
+            autoComplete="off"
             placeholder="Longitude (e.g. 72.9949806)"
             value={longitude}
             onChange={(e) => setLongitude(e.target.value)}

@@ -1,4 +1,9 @@
-import 'dotenv/config'
+try {
+  const { config } = await import('dotenv')
+  config()
+} catch {
+  // dotenv is optional in production environments
+}
 import { z } from 'zod'
 
 const envSchema = z.object({
