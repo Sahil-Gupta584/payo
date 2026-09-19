@@ -64,8 +64,8 @@ export function createServer(user: User | null) {
       inputSchema: {
         query: z.string().trim().describe('e.g. diet coke, peanut butter'),
         address_id: z.string().trim().describe('ID of saved delivery address from list_addresses. Required because quick-commerce catalog and stock depend on the exact local dark store serving this address.'),
-        platform: z.enum(['swiggy', 'blinkit', 'all']).default('all').describe('Filter platform: swiggy, blinkit, or all (default all)'),
-        limit: z.number().int().min(1).max(30).default(15).describe('Number of results to return (1-30, default 15)'),
+        platform: z.enum(['swiggy', 'blinkit', 'all']).optional().describe('Filter platform: swiggy, blinkit, or all (default all)'),
+        limit: z.number().int().min(1).max(30).optional().describe('Number of results to return (1-30, default 15)'),
       },
     },
     async ({ query, address_id, platform, limit }) => {
@@ -338,7 +338,7 @@ export function createServer(user: User | null) {
       description: 'List recent orders for the authenticated user. Use query to filter by product name for reorder (e.g. "coke", "peanut butter"). Returns productId/productName/amount needed for initiate_order.',
       inputSchema: {
         query: z.string().trim().optional().describe('Filter by product name (e.g. "coke" to find last coke order for reorder)'),
-        limit: z.number().int().min(1).max(20).default(10).describe('Number of orders to return (default 10)'),
+        limit: z.number().int().min(1).max(20).optional().describe('Number of orders to return (default 10)'),
       },
     },
     async ({ query, limit }) => {

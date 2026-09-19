@@ -3,11 +3,12 @@ zerops:
     build:
       base: nodejs@22
       buildCommands:
-        - npm install -w @payo/mcp -w @repo/db --include-workspace-root
+        - npm install
         - npm --prefix apps/mcp run build
       deployFiles:
         - apps/mcp/dist
         - apps/mcp/package.json
+        - apps/mcp/node_modules
         - node_modules
       cache:
         - node_modules
