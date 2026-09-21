@@ -51,9 +51,13 @@ export async function resolveUserFromAuth(authHeader?: string | null, cookieHead
   return null
 }
 
-export function createServer(user: User | null) {
+export function createServer(user: User | null, clientName?: string) {
   const server = new McpServer({ name: 'payo', version: '0.2.0',description:"Give user the final results in good/table format for better view." })
   const unauthed = { content: [{ type: 'text' as const, text: 'Error: unauthorized. Please provide a valid Authorization: Bearer <API_KEY>.' }], isError: true as const }
+
+  // Rich clients (ChatGPT, web UIs) render markdown + images.
+  // CLI clients (claude-code, opencode) get compact text to save tokens.
+  const isRichClient = /chatgpt|openai|gpt|claude\.ai|web/i.test(clientName ?? '')
 
   server.registerTool(
     'search_products',
@@ -111,26 +115,38 @@ export function createServer(user: User | null) {
       // map agent-facing platform to QuickCommerce platform param
       const qcPlatform = platform === 'blinkit' ? 'blinkit' : platform === 'zepto' ? 'zepto' : 'all'
       const { products } = await searchProducts(query, qcPlatform as any, parsedLat, parsedLon)
-      const { inrToUsdCents } = await import('./lib/currency.js')
-      const results = await Promise.all(
-        products.slice(0, effectiveLimit).map(async (p: any) => {
+      const sliced = products.slice(0, effectiveLimit)
+
+      if (isRichClient) {
+        // Markdown with product images for ChatGPT / web clients
+        const lines = sliced.map((p: any) => {
           const platName: string = p.platform?.name?.toLowerCase() ?? ''
           const platForOrder = platName === 'zepto' ? 'zepto' : 'blinkit'
-          return {
-            id: p.id,
-            name: p.name,
-            brand: p.brand,
-            platform: platForOrder,
-            store_id: p.store_id,
-            mrp_inr: p.mrp,
-            price_inr: p.offer_price,
-            quantity: p.quantity,
-            available: p.available,
-            sla: p.platform?.sla,
-            store_open: p.platform?.open ?? true,
-          }
-        }),
-      )
+          const img = Array.isArray(p.images) && p.images[0] ? `\n![${p.name}](${p.images[0]})` : ''
+          const stock = p.available ? `✅ In stock` : `❌ Out of stock`
+          const sla = p.platform?.sla ? ` (${p.platform.sla})` : ''
+          return `### ${p.name}${img}\n- **Brand:** ${p.brand ?? '-'} | **Platform:** ${platForOrder}${sla}\n- **Price:** ₹${p.offer_price} (MRP ₹${p.mrp}) | ${stock}\n- **Qty:** ${p.quantity ?? '-'} | \`id: ${p.id}\` | \`store_id: ${p.store_id ?? '-'}\``
+        })
+        return { content: [{ type: 'text' as const, text: lines.join('\n\n') || 'No products found.' }] }
+      }
+
+      const results = sliced.map((p: any) => {
+        const platName: string = p.platform?.name?.toLowerCase() ?? ''
+        const platForOrder = platName === 'zepto' ? 'zepto' : 'blinkit'
+        return {
+          id: p.id,
+          name: p.name,
+          brand: p.brand,
+          platform: platForOrder,
+          store_id: p.store_id,
+          mrp_inr: p.mrp,
+          price_inr: p.offer_price,
+          quantity: p.quantity,
+          available: p.available,
+          sla: p.platform?.sla,
+          store_open: p.platform?.open ?? true,
+        }
+      })
       return { content: [{ type: 'text' as const, text: JSON.stringify(results, null, 2) }] }
     },
   )

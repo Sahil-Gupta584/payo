@@ -20,7 +20,17 @@ app.all('/mcp', async (req, res) => {
     const cookieHeader = req.headers.cookie
     const user = await resolveUserFromAuth(authHeader, cookieHeader)
 
-    const server = createServer(user)
+    // Detect MCP client from initialize handshake (e.g. "ChatGPT", "claude-code")
+    // so tools can adapt responses (rich markdown + images vs compact CLI text).
+    let clientName: string | undefined
+    try {
+      const body = req.body
+      if (body?.method === 'initialize') {
+        clientName = body?.params?.clientInfo?.name as string | undefined
+      }
+    } catch { /* ignore */ }
+
+    const server = createServer(user, clientName)
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined, // stateless — new server per request
     })
