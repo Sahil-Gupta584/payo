@@ -264,7 +264,7 @@ export function createServer(user: User | null) {
       await db.insert(order).values({
         id: orderId,
         userId: user.id,
-        platform: targetPlatform as 'blinkit',
+        platform: targetPlatform,
         productId: product_id,
         productName: priceVerification.matchedName || product_name,
         amount: finalAmount,
@@ -340,7 +340,7 @@ export function createServer(user: User | null) {
 
           await tx.insert(walletHistory).values({ userId: user.id, amount: serviceFeeCents, type: 'debit', description: `Service fee - ${product_name} (COD)`, balanceAfter: debited.balance, referenceId: orderId })
           await tx.update(order).set({ status: 'confirmed' }).where(eq(order.id, orderId))
-          await tx.insert(orderHistory).values({ id: orderId as any, userId: user.id, platform: targetPlatform as 'blinkit', productId: product_id, productName: product_name, amount: finalAmount, status: 'confirmed', paymentMethod: pm })
+          await tx.insert(orderHistory).values({ id: orderId as any, userId: user.id, platform: targetPlatform, productId: product_id, productName: product_name, amount: finalAmount, status: 'confirmed', paymentMethod: pm })
         })
 
         const deliveryInfo = `\nDelivering to: ${chosenAddress.label} (${chosenAddress.recipientName} - ${chosenAddress.recipientPhone})\nAddress: ${chosenAddress.line1}, ${chosenAddress.city}`
@@ -358,7 +358,7 @@ export function createServer(user: User | null) {
           sbiSignature: result.sbiFields.signature,
           expiresAt: new Date(Date.now() + 10 * 60 * 1000),
         })
-        await db.insert(orderHistory).values({ id: orderId as any, userId: user.id, platform: targetPlatform as 'blinkit', productId: product_id, productName: product_name, amount: finalAmount, status: 'awaiting_otp', paymentMethod: pm })
+        await db.insert(orderHistory).values({ id: orderId as any, userId: user.id, platform: targetPlatform, productId: product_id, productName: product_name, amount: finalAmount, status: 'awaiting_otp', paymentMethod: pm })
       }
       const deliveryInfo = `\nDelivering to: ${chosenAddress.label} (${chosenAddress.recipientName} - ${chosenAddress.recipientPhone})\nAddress: ${chosenAddress.line1}, ${chosenAddress.city}`
       return { content: [{ type: 'text' as const, text: `Order initiated on ${targetPlatform} — OTP sent to your mobile number.\n\nOrder ID: ${orderId}\nProduct: ${product_name} ($${(finalAmount / 100).toFixed(2)})${deliveryInfo}\n\nTo complete the booking, please share the 6-digit OTP and I will confirm the order via confirm_order. OTP expires in 10min You can share!` }] }
