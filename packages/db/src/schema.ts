@@ -115,7 +115,7 @@ export const orderStatusEnum = pgEnum("order_status", [
   "cancelled",
 ]);
 
-export const platformEnum = pgEnum("platform", ["flipkart", "instamart", "blinkit"]);
+export const platformEnum = pgEnum("platform", ["flipkart", "instamart", "blinkit", "zepto"]);
 
 export const order = pgTable(
   "order",

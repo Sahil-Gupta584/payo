@@ -5,11 +5,11 @@ const BASE = 'https://api.quickcommerceapi.com/v1'
 
 export async function searchProducts(
   query: string,
-  platform: 'swiggy' | 'blinkit' | 'all' = 'all',
+  platform: 'swiggy' | 'blinkit' | 'zepto' | 'all' = 'all',
   lat = 19.1851092,
   lon = 72.9949806,
 ) {
-  const fetchForPlatform = async (platName: 'BlinkIt' | 'Swiggy') => {
+  const fetchForPlatform = async (platName: 'BlinkIt' | 'Swiggy' | 'Zepto') => {
     try {
       const res = await fetch(
         `${BASE}/search?q=${encodeURIComponent(query)}&lat=${lat}&lon=${lon}&platform=${platName}`,
@@ -30,20 +30,28 @@ export async function searchProducts(
     }
   }
 
-  if (platform === 'all') {
-    const [blinkitRes, swiggyRes] = await Promise.all([
-      fetchForPlatform('BlinkIt'),
-      fetchForPlatform('Swiggy'),
-    ])
-    return {
-      products: [...blinkitRes.products, ...swiggyRes.products],
-      creditsRemaining: blinkitRes.credits || swiggyRes.credits,
-    }
+  if (platform === 'blinkit') {
+    const result = await fetchForPlatform('BlinkIt')
+    return { products: result.products, creditsRemaining: result.credits }
+  }
+  if (platform === 'zepto') {
+    const result = await fetchForPlatform('Zepto')
+    return { products: result.products, creditsRemaining: result.credits }
+  }
+  if (platform === 'swiggy') {
+    const result = await fetchForPlatform('Swiggy')
+    return { products: result.products, creditsRemaining: result.credits }
   }
 
-  const platParam = platform === 'blinkit' ? 'BlinkIt' : 'Swiggy'
-  const result = await fetchForPlatform(platParam)
-  return { products: result.products, creditsRemaining: result.credits }
+  // all — Blinkit + Zepto
+  const [blinkitRes, zeptoRes] = await Promise.all([
+    fetchForPlatform('BlinkIt'),
+    fetchForPlatform('Zepto'),
+  ])
+  return {
+    products: [...blinkitRes.products, ...zeptoRes.products],
+    creditsRemaining: blinkitRes.credits || zeptoRes.credits,
+  }
 }
 
 /**
@@ -52,7 +60,7 @@ export async function searchProducts(
  */
 export async function getItemDetail(
   itemId: string,
-  platform: 'blinkit' | 'instamart' | 'swiggy',
+  platform: 'blinkit' | 'instamart' | 'swiggy' | 'zepto',
   lat: number,
   lon: number,
   pincode?: string,
@@ -65,6 +73,8 @@ export async function getItemDetail(
     mrp: number
     available: boolean
     inventory?: number
+    storeId?: string
+    sla?: string
   } | null
   creditsRemaining?: number
 }> {
@@ -89,6 +99,8 @@ export async function getItemDetail(
           mrp: Number(it.mrp ?? it.price ?? 0),
           available: it.available !== false && (it.inventory === undefined || it.inventory > 0),
           inventory: it.inventory,
+          storeId: it.store_id,
+          sla: it.sla,
         },
         creditsRemaining: data.credits_remaining,
       }
@@ -110,7 +122,7 @@ export async function getItemDetail(
 export async function verifyProductPrice(
   productId: string,
   productName: string,
-  platform: 'blinkit' | 'instamart',
+  platform: 'blinkit' | 'instamart' | 'zepto',
   lat: number,
   lon: number,
   pincode?: string,
@@ -120,6 +132,9 @@ export async function verifyProductPrice(
   priceInr: number
   available: boolean
   matchedName: string
+  storeId?: string
+  mrpInr?: number
+  sla?: string
 }> {
   try {
     const detail = await getItemDetail(productId, platform, lat, lon, pincode)
@@ -132,6 +147,9 @@ export async function verifyProductPrice(
         priceInr,
         available: detail.item.available,
         matchedName: detail.item.name || productName,
+        storeId: detail.item.storeId,
+        mrpInr: detail.item.mrp,
+        sla: detail.item.sla,
       }
     }
 

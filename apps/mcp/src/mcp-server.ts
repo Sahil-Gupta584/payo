@@ -52,18 +52,18 @@ export async function resolveUserFromAuth(authHeader?: string | null, cookieHead
 }
 
 export function createServer(user: User | null) {
-  const server = new McpServer({ name: 'payo', version: '0.2.0' })
+  const server = new McpServer({ name: 'payo', version: '0.2.0',description:"Give user the final results in good/table format for better view." })
   const unauthed = { content: [{ type: 'text' as const, text: 'Error: unauthorized. Please provide a valid Authorization: Bearer <API_KEY>.' }], isError: true as const }
 
   server.registerTool(
     'search_products',
     {
       title: 'Search products',
-      description: 'Search products on Swiggy Instamart and Blinkit. Returns up to 30 results (default 15) with id, name, price, availability, platform.',
+      description: 'Search products on Blinkit and Zepto. Returns up to 30 results (default 15) with id, name, price, availability, platform.',
       inputSchema: {
         query: z.string().trim().describe('e.g. diet coke, peanut butter'),
         address_id: z.string().trim().describe('ID of saved delivery address from list_addresses. Required because quick-commerce catalog and stock depend on the exact local dark store serving this address.'),
-        platform: z.enum(['swiggy', 'blinkit', 'all']).optional().describe('Filter platform: swiggy, blinkit, or all (default all)'),
+        platform: z.enum(['all', 'blinkit', 'zepto']).default('all').describe('Platform to search on. Use "all" to compare across Blinkit and Zepto.'),
         limit: z.number().int().min(1).max(30).optional().describe('Number of results to return (1-30, default 15)'),
       },
     },
@@ -82,7 +82,6 @@ export function createServer(user: User | null) {
       }
 
       if (!userAddr) {
-        // Check if user has ANY addresses at all
         const anyAddr = await db.query.userAddress.findFirst({
           where: eq(userAddress.userId, user.id),
         })
@@ -109,25 +108,28 @@ export function createServer(user: User | null) {
         }
       }
 
-      const { products } = await searchProducts(
-        query,
-        platform ?? 'all',
-        parsedLat,
-        parsedLon,
-      )
+      // map agent-facing platform to QuickCommerce platform param
+      const qcPlatform = platform === 'blinkit' ? 'blinkit' : platform === 'zepto' ? 'zepto' : 'all'
+      const { products } = await searchProducts(query, qcPlatform as any, parsedLat, parsedLon)
       const { inrToUsdCents } = await import('./lib/currency.js')
       const results = await Promise.all(
-        products.slice(0, effectiveLimit).map(async (p: any) => ({
-          id: p.id,
-          name: p.name,
-          brand: p.brand,
-          platform: p.platform?.name?.toLowerCase() === 'swiggy' ? 'instamart' : 'blinkit', // pass this exact value to initiate_order
-          price_inr: p.offer_price,
-          price_usd_cents: await inrToUsdCents(Number(p.offer_price) || 0),
-          mrp_inr: p.mrp,
-          quantity: p.quantity,
-          available: p.available,
-        })),
+        products.slice(0, effectiveLimit).map(async (p: any) => {
+          const platName: string = p.platform?.name?.toLowerCase() ?? ''
+          const platForOrder = platName === 'zepto' ? 'zepto' : 'blinkit'
+          return {
+            id: p.id,
+            name: p.name,
+            brand: p.brand,
+            platform: platForOrder,
+            store_id: p.store_id,
+            mrp_inr: p.mrp,
+            price_inr: p.offer_price,
+            quantity: p.quantity,
+            available: p.available,
+            sla: p.platform?.sla,
+            store_open: p.platform?.open ?? true,
+          }
+        }),
       )
       return { content: [{ type: 'text' as const, text: JSON.stringify(results, null, 2) }] }
     },
@@ -182,7 +184,7 @@ export function createServer(user: User | null) {
       inputSchema: {
         product_id: z.string().trim().describe('id from search_products'),
         product_name: z.string().trim(),
-        platform: z.enum(['instamart', 'blinkit']).describe('Must match the platform field from search_products result. Passing the wrong platform will cause price verification to fail.'),
+        platform: z.enum(['blinkit', 'zepto']).describe('Must match the platform field from search_products result. Passing the wrong platform will cause price verification to fail.'),
         payment_method: z.enum(['wallet', 'cod']).default('wallet').describe('wallet = pay from wallet balance (OTP required), cod = cash on delivery (pay at door)'),
         address_id: z.string().trim().describe('ID of saved address from list_addresses to deliver to (required)'),
       },
@@ -262,7 +264,7 @@ export function createServer(user: User | null) {
       await db.insert(order).values({
         id: orderId,
         userId: user.id,
-        platform: targetPlatform,
+        platform: targetPlatform as 'blinkit',
         productId: product_id,
         productName: priceVerification.matchedName || product_name,
         amount: finalAmount,
@@ -284,9 +286,32 @@ export function createServer(user: User | null) {
       }
 
       const card = { number: env.PLATFORM_CARD_NUMBER, expiry: env.PLATFORM_CARD_EXPIRY, cvv: env.PLATFORM_CARD_CVV }
-      const result = targetPlatform === 'blinkit'
-        ? await blinkitCheckout(product_id, card, pm, addressPayload)
-        : await instamartCheckout(product_id, card, pm, addressPayload)
+      let result
+      if (targetPlatform === 'blinkit') {
+        result = await blinkitCheckout(product_id, card, pm, addressPayload)
+      } else if (targetPlatform === 'zepto') {
+        const { zeptoCheckout } = await import('./lib/solari/zepto.js')
+        if (!priceVerification.storeId || !priceVerification.mrpInr) {
+          return { content: [{ type: 'text' as const, text: `❌ Could not resolve Zepto store details for "${product_name}". Please try again.` }], isError: true }
+        }
+        // sla is unreliable for real-time store status (QC cache may say "Closed" while store is open)
+        // fall back to 10 min if unparseable
+        const etaMatch = (priceVerification.sla || '').match(/(\d+)/)
+        const storeEta = etaMatch ? parseInt(etaMatch[1], 10) : 10
+        result = await zeptoCheckout(
+          product_id,
+          priceVerification.mrpInr,
+          priceVerification.storeId,
+          storeEta,
+          {
+            latitude: String(isNaN(lat) ? 19.1851092 : lat),
+            longitude: String(isNaN(lon) ? 72.9949806 : lon),
+            zeptoAddressId: process.env.ZEPTO_ADDRESS_ID ?? '',
+          },
+        )
+      } else {
+        result = await instamartCheckout(product_id, card, pm, addressPayload)
+      }
 
       if (!result.success) {
         await db.update(order).set({ status: 'failed', errorMessage: result.error }).where(eq(order.id, orderId))
@@ -315,7 +340,7 @@ export function createServer(user: User | null) {
 
           await tx.insert(walletHistory).values({ userId: user.id, amount: serviceFeeCents, type: 'debit', description: `Service fee - ${product_name} (COD)`, balanceAfter: debited.balance, referenceId: orderId })
           await tx.update(order).set({ status: 'confirmed' }).where(eq(order.id, orderId))
-          await tx.insert(orderHistory).values({ id: orderId as any, userId: user.id, platform: targetPlatform, productId: product_id, productName: product_name, amount: finalAmount, status: 'confirmed', paymentMethod: pm })
+          await tx.insert(orderHistory).values({ id: orderId as any, userId: user.id, platform: targetPlatform as 'blinkit', productId: product_id, productName: product_name, amount: finalAmount, status: 'confirmed', paymentMethod: pm })
         })
 
         const deliveryInfo = `\nDelivering to: ${chosenAddress.label} (${chosenAddress.recipientName} - ${chosenAddress.recipientPhone})\nAddress: ${chosenAddress.line1}, ${chosenAddress.city}`
@@ -333,7 +358,7 @@ export function createServer(user: User | null) {
           sbiSignature: result.sbiFields.signature,
           expiresAt: new Date(Date.now() + 10 * 60 * 1000),
         })
-        await db.insert(orderHistory).values({ id: orderId as any, userId: user.id, platform: targetPlatform, productId: product_id, productName: product_name, amount: finalAmount, status: 'awaiting_otp', paymentMethod: pm })
+        await db.insert(orderHistory).values({ id: orderId as any, userId: user.id, platform: targetPlatform as 'blinkit', productId: product_id, productName: product_name, amount: finalAmount, status: 'awaiting_otp', paymentMethod: pm })
       }
       const deliveryInfo = `\nDelivering to: ${chosenAddress.label} (${chosenAddress.recipientName} - ${chosenAddress.recipientPhone})\nAddress: ${chosenAddress.line1}, ${chosenAddress.city}`
       return { content: [{ type: 'text' as const, text: `Order initiated on ${targetPlatform} — OTP sent to your mobile number.\n\nOrder ID: ${orderId}\nProduct: ${product_name} ($${(finalAmount / 100).toFixed(2)})${deliveryInfo}\n\nTo complete the booking, please share the 6-digit OTP and I will confirm the order via confirm_order. OTP expires in 10min You can share!` }] }
