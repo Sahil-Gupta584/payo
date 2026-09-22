@@ -1,9 +1,5 @@
-try {
-  const { config } = await import('dotenv')
-  config()
-} catch {
-  // dotenv is optional in production environments
-}
+import { config } from 'dotenv'
+config()
 import { z } from 'zod'
 
 const envSchema = z.object({
@@ -15,6 +11,7 @@ const envSchema = z.object({
   PLATFORM_CARD_EXPIRY: z.string().min(1),
   PLATFORM_CARD_CVV: z.string().min(1),
   QUICKCOMMERCE_API_KEY: z.string().min(1),
+  ZEPTO_CARD_INSTRUMENT_CODE: z.string().min(1),
 })
 
 export const env = envSchema.parse({
@@ -29,4 +26,5 @@ export const env = envSchema.parse({
   PLATFORM_CARD_EXPIRY: process.env.PLATFORM_CARD_EXPIRY,
   PLATFORM_CARD_CVV: process.env.PLATFORM_CARD_CVV,
   QUICKCOMMERCE_API_KEY: process.env.QUICKCOMMERCE_API_KEY,
+  ZEPTO_CARD_INSTRUMENT_CODE: process.env.ZEPTO_CARD_INSTRUMENT_CODE,
 })

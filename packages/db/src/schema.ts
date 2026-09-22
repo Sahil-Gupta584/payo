@@ -115,7 +115,7 @@ export const orderStatusEnum = pgEnum("order_status", [
   "cancelled",
 ]);
 
-export const platformEnum = pgEnum("platform", ["flipkart", "instamart", "blinkit"]);
+export const platformEnum = pgEnum("platform", ["flipkart", "instamart", "blinkit", "zepto"]);
 
 export const order = pgTable(
   "order",
@@ -240,16 +240,6 @@ export const userAddress = pgTable("user_address", {
 export const userAddressRelations = relations(userAddress, ({ one }) => ({
   user: one(user, { fields: [userAddress.userId], references: [user.id] }),
 }));
-
-// ── Invite allowlist ──────────────────────────────────────────────────────────
-
-export const invite = pgTable("invite", {
-  id: text("id").primaryKey(),
-  email: text("email").notNull().unique(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-})
-
-export type Invite = typeof invite.$inferSelect
 
 export type User = typeof user.$inferSelect
 export type Wallet = typeof wallet.$inferSelect

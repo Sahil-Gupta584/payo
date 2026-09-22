@@ -2,7 +2,15 @@ import { z } from 'zod'
 import { authed } from '#/orpc/middleware'
 import { db } from '#/db'
 import { order, orderHistory } from '#/db/schema'
-import { eq, and, desc, inArray } from 'drizzle-orm'
+import { eq, and, desc, inArray, sql } from 'drizzle-orm'
+
+export const getSpent = authed.handler(async ({ context }) => {
+  const [row] = await db
+    .select({ total: sql<number>`coalesce(sum(${orderHistory.amount}), 0)` })
+    .from(orderHistory)
+    .where(and(eq(orderHistory.userId, context.user.id), eq(orderHistory.status, 'confirmed')))
+  return { spent: Number(row?.total ?? 0) }
+})
 
 export const listOrders = authed.handler(async ({ context }) => {
   const live = await db.query.order.findMany({

@@ -12,7 +12,6 @@ import {
   Wallet,
   ShoppingBag,
   MapPin,
-  Plus,
   Clock,
   CheckCircle2,
   AlertCircle,
@@ -32,8 +31,8 @@ function Dashboard() {
   const qc = useQueryClient()
 
   // Queries
-  const { data: balanceData, isLoading: balanceLoading } = useQuery(
-    orpc.wallet.getBalance.queryOptions(),
+  const { data: spentData, isLoading: spentLoading } = useQuery(
+    orpc.orders.getSpent.queryOptions(),
   )
   const { data: ordersData, isLoading: ordersLoading } = useQuery(
     orpc.orders.list.queryOptions(),
@@ -48,8 +47,8 @@ function Dashboard() {
   const pastOrders = ordersData?.past ?? []
   const totalOrdersCount = liveOrders.length + pastOrders.length
 
-  const formattedBalance = balanceData
-    ? `$${((balanceData.balance ?? 0) / 100).toFixed(2)}`
+  const formattedSpent = spentData
+    ? `$${((spentData.spent ?? 0) / 100).toFixed(2)}`
     : '$0.00'
 
   return (
@@ -69,18 +68,20 @@ function Dashboard() {
               Manage addresses
             </Link>
           </Button>
+          {/* Wallet top-up — hidden for COD-only mode, restore when wallet returns
           <Button size="sm" asChild>
             <Link to="/topup">
               <Plus className="mr-1.5 h-3.5 w-3.5" />
               Top up wallet
             </Link>
           </Button>
+          */}
         </div>
       </div>
 
       {/* 3 Metric Cards */}
       <div className="grid gap-4 sm:grid-cols-3">
-        {/* 1. Wallet Balance Card */}
+        {/* Wallet Balance Card — hidden for COD-only mode, restore when wallet returns
         <Card className="transition-all hover:border-border">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
@@ -106,6 +107,31 @@ function Dashboard() {
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
               Available for autonomous agent purchases
+            </p>
+          </CardContent>
+        </Card>
+        */}
+
+        {/* 1. Total Spent Card */}
+        <Card className="transition-all hover:border-border">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">Total Spent</span>
+              <div className="rounded-full bg-emerald-500/10 p-2 text-emerald-600">
+                <Wallet className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="mt-3 flex items-baseline justify-between">
+              <span className="text-2xl font-bold tracking-tight">
+                {spentLoading ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                ) : (
+                  formattedSpent
+                )}
+              </span>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Across all confirmed orders
             </p>
           </CardContent>
         </Card>

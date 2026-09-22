@@ -18,21 +18,6 @@ export const auth = betterAuth({
       verification: schema.verification,
     },
   }),
-  databaseHooks: {
-    user: {
-      create: {
-        before: async (user) => {
-          const allowed = await db.query.invite.findFirst({
-            where: (inv, { eq }) => eq(inv.email, user.email),
-          })
-          if (!allowed) {
-            throw new Error('This email is not on the invite list.')
-          }
-          return { data: user }
-        },
-      },
-    },
-  },
   plugins: [
     tanstackStartCookies(),
     magicLink({

@@ -10,7 +10,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '#/components/ui/dropdown-menu'
-import { LayoutDashboard, Wallet, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, Settings, LogOut } from 'lucide-react'
+// Wallet icon — restore with top-up menu item when wallet returns
+// import { Wallet } from 'lucide-react'
 
 export const Route = createFileRoute('/_protected')({
   beforeLoad: async () => {
@@ -101,12 +103,14 @@ function ProtectedLayout() {
                 </Link>
               </DropdownMenuItem>
 
+              {/* Wallet top-up — hidden for COD-only mode, restore when wallet returns
               <DropdownMenuItem asChild>
                 <Link to="/topup">
                   <Wallet className="h-4 w-4" />
                   Top up
                 </Link>
               </DropdownMenuItem>
+              */}
 
               <DropdownMenuItem asChild>
                 <Link to="/settings">

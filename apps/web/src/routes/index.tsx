@@ -1,7 +1,4 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useState } from 'react'
-import { client } from '#/orpc/client'
-import { Button } from '#/components/ui/button'
 import { Check, Loader2, ShieldCheck, ChevronDown, ArrowUp, Paperclip } from 'lucide-react'
 import { cn } from '#/lib/utils'
 
@@ -130,7 +127,7 @@ function ClaudeCard() {
                 </div>
                 <div className="flex items-center justify-between border-t border-neutral-100 pt-2 text-[11px] text-neutral-500">
                   <span>Debit: <strong className="text-neutral-800">$4.18</strong></span>
-                  <span>Wallet Balance: <strong className="text-neutral-800">$24.50</strong></span>
+                  <span>Total Spent: <strong className="text-neutral-800">$24.50</strong></span>
                 </div>
               </div>
             </div>
@@ -153,21 +150,6 @@ function ClaudeCard() {
 }
 
 function LandingPage() {
-  const [email, setEmail] = useState('')
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email) return
-    setStatus('loading')
-    try {
-      await client.waitlist.join({ email })
-      setStatus('success')
-    } catch {
-      setStatus('error')
-    }
-  }
-
   return (
     <div
       className="flex min-h-screen flex-col bg-cover bg-top bg-no-repeat"
@@ -184,14 +166,12 @@ function LandingPage() {
             <Link to="/login" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors no-underline">
               Sign in
             </Link>
-            <a
-              href="https://x.com/sahil_builds"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              to="/login"
               className="rounded-full bg-foreground px-5 py-2 text-sm font-semibold text-white! no-underline shadow-xs hover:opacity-90 transition-opacity"
             >
-              Get access
-            </a>
+              Get started
+            </Link>
           </div>
         </div>
       </header>
@@ -226,38 +206,15 @@ function LandingPage() {
             Payo gives AI agents a secure way to search, order, and pay online, always within the limits you set.
           </p>
 
-          {/* Email form */}
-          {status === 'success' ? (
-            <div className="w-full max-w-[440px] rounded-2xl bg-white/90 px-5 py-4 shadow-sm border border-black/10">
-              <p className="font-bold text-foreground">You're on the list.</p>
-              <p className="mt-1 text-sm text-foreground/50">We'll reach out when your spot is ready.</p>
-            </div>
-          ) : (
-            <form
-              onSubmit={handleSubmit}
-              className="flex w-full max-w-[440px] items-center rounded-[13px] border border-black/15 bg-white py-1.5 pl-4 pr-1.5 shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all focus-within:border-blue-500/50 focus-within:ring-2 focus-within:ring-blue-500/20"
+          {/* CTA */}
+          <div className="flex w-full max-w-[440px] items-center justify-center gap-3">
+            <Link
+              to="/login"
+              className="rounded-[9px] bg-foreground px-8 py-3 text-[15px] font-semibold text-white! no-underline shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-opacity hover:opacity-90"
             >
-              <input
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                className="min-w-0 flex-1 border-none bg-transparent text-[15px] text-foreground outline-none placeholder:text-foreground/35 text-left"
-              />
-              <Button
-                type="submit"
-                disabled={status === 'loading'}
-                className="shrink-0 rounded-[9px]"
-              >
-                {status === 'loading' ? 'Sending…' : 'Get early access'}
-              </Button>
-            </form>
-          )}
-
-          {status === 'error' && (
-            <p className="mt-2 text-xs text-red-500">Something went wrong. Try again.</p>
-          )}
+              Start shopping
+            </Link>
+          </div>
 
           <p className="mt-3 mb-10 text-[13px] text-foreground/45">
             Built for Claude, OpenCode, and any MCP-compatible agent.
@@ -274,7 +231,7 @@ function LandingPage() {
           {[
             { n: '1', title: 'Search', desc: 'Agent calls search_products and picks what you need from Instamart.' },
             { n: '2', title: 'Order', desc: 'Browser automation handles the cart, card entry, and checkout.' },
-            { n: '3', title: 'Confirm', desc: 'You share the OTP. Wallet is debited. Order is placed.' },
+            { n: '3', title: 'Confirm', desc: 'Order is placed. You pay cash at delivery.' },
           ].map(({ n, title, desc }) => (
             <div key={n} className="flex flex-col">
               <div className="mb-3 flex h-7 w-7 items-center justify-center rounded-full border border-foreground/20 text-[13px] font-bold text-foreground">
@@ -308,7 +265,7 @@ function LandingPage() {
         </div>
 
         <p className="shrink-0 text-right font-semibold leading-[1.55] ">
-          Give your agents<br />a wallet.
+          Give your agents<br />the power to shop.
         </p>
       </footer>
     </div>

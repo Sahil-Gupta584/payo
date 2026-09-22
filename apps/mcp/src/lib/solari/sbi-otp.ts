@@ -51,7 +51,7 @@ export async function scrapeSbiOtpFields(page: any): Promise<{
   }
 
   if (!target) throw new Error('SBI OTP page / iframe not found')
-  await target.waitForSelector('#transactionIdentifier', { timeout: 20000 })
+  await target.waitForSelector('#transactionIdentifier', { timeout: 20000, state: 'attached' })
 
   return {
     transactionIdentifier: await target.locator('#transactionIdentifier').inputValue(),
