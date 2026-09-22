@@ -241,16 +241,6 @@ export const userAddressRelations = relations(userAddress, ({ one }) => ({
   user: one(user, { fields: [userAddress.userId], references: [user.id] }),
 }));
 
-// ── Invite allowlist ──────────────────────────────────────────────────────────
-
-export const invite = pgTable("invite", {
-  id: text("id").primaryKey(),
-  email: text("email").notNull().unique(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-})
-
-export type Invite = typeof invite.$inferSelect
-
 export type User = typeof user.$inferSelect
 export type Wallet = typeof wallet.$inferSelect
 export type WalletHistory = typeof walletHistory.$inferSelect

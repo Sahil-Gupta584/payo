@@ -1,6 +1,5 @@
 import { addTodo, listTodos } from './todos'
 import { getWalletBalance, topupWallet, createWalletCheckout, getWalletHistory } from './wallet'
-import { checkInvite } from './invite'
 import { listApiKeys, createApiKey, revokeApiKey } from './apiKeys'
 import { joinWaitlist } from './waitlist'
 import { listAddresses, createAddress, updateAddress, deleteAddress } from './addresses'
@@ -10,7 +9,6 @@ import { updateName } from './user'
 export default {
   listTodos,
   addTodo,
-  invite: { check: checkInvite },
   waitlist: { join: joinWaitlist },
   wallet: {
     getBalance: getWalletBalance,

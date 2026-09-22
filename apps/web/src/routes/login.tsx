@@ -2,7 +2,6 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useState } from 'react'
 import { authClient } from '#/lib/auth-client'
 import { getSession } from '#/lib/session'
-import { client } from '#/orpc/client'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { Card, CardContent } from '#/components/ui/card'
@@ -21,7 +20,6 @@ function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
-  const [notInvited, setNotInvited] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,17 +33,7 @@ function LoginPage() {
     }
     setLoading(true)
     setError('')
-    setNotInvited(false)
     try {
-      const { allowed } = await client.invite.check({
-        email: email.trim(),
-        name: name.trim(),
-      })
-      if (!allowed) {
-        setNotInvited(true)
-        setLoading(false)
-        return
-      }
       await authClient.signIn.magicLink({
         email: email.trim(),
         name: name.trim(),
@@ -81,16 +69,6 @@ function LoginPage() {
               <p className="mt-1 text-sm text-muted-foreground">
                 We sent a login link to <span className="font-medium text-foreground">{email}</span>
               </p>
-            </div>
-          ) : notInvited ? (
-            <div className="state-enter rounded-xl border border-destructive/20 bg-destructive/10 p-6 text-center">
-              <p className="text-sm font-medium">Not on the invite list</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                <span className="font-medium text-foreground">{email}</span> is not invited yet.
-              </p>
-              <Button variant="link" size="sm" onClick={() => setNotInvited(false)} className="mt-4 h-auto p-0 text-xs">
-                Try a different email
-              </Button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
@@ -133,10 +111,7 @@ function LoginPage() {
           )}
 
           <p className="text-center text-xs text-muted-foreground">
-            Invite only — request access on{' '}
-            <a href="https://x.com/sahil_builds" target="_blank" rel="noopener noreferrer" className="font-medium underline hover:text-foreground">
-              X
-            </a>
+            Powering AI to shop online
           </p>
         </CardContent>
       </Card>
