@@ -52,7 +52,7 @@ export async function resolveUserFromAuth(authHeader?: string | null, cookieHead
 }
 
 export function createServer(user: User | null, clientName?: string) {
-  const server = new McpServer({ name: 'payo', version: '0.2.0',description:"Give user the final results in good/table format for better view." })
+  const server = new McpServer({ name: 'payo', version: '0.2.0' }, { instructions: "Give user the final results in good/table format for better view." })
   const unauthed = { content: [{ type: 'text' as const, text: 'Error: unauthorized. Please provide a valid Authorization: Bearer <API_KEY>.' }], isError: true as const }
 
   // Rich clients (ChatGPT, web UIs) render markdown + images.
