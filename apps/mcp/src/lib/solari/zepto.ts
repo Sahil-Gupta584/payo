@@ -62,33 +62,42 @@ export async function zeptoCheckout(
   })
 
   try {
-    // 1. Navigate to product page, intercept RSC response to get storeProductId
+    // 1. Navigate to product page — the server-rendered HTML already contains storeProductId
     let storeProductId: string | undefined
-
-    const rscCapture = page.waitForResponse(
-      res => res.url().includes(`/pvid/${productVariantId}`) && res.url().includes('_rsc'),
-      { timeout: 15000 },
-    ).then(async res => {
-      const text = await res.text()
-      storeProductId = text.match(/"storeProductId":"([^"]+)"/)?.[1]
-    }).catch(() => {})
 
     await step('load product page', page, async () => {
       await page.goto(`https://www.zepto.com/pn/x/pvid/${productVariantId}`, {
         waitUntil: 'domcontentloaded',
         timeout: 30000,
       })
-      await rscCapture
+      await page.waitForTimeout(3000)
+      const html = await page.content()
+      console.log(`[DBG] page html len=${html.length} | hasSpid=${html.includes('storeProductId')}`)
+      // RSC flight data embeds escaped quotes: \"storeProductId\":\"...\"
+      const spidRe = /storeProductId\\?":\\?"([^"\\]+)/
+      const m = html.match(spidRe)
+      if (m) storeProductId = m[1]
     })
 
-    if (!storeProductId) throw new Error('storeProductId not found in RSC response')
+    if (!storeProductId) throw new Error('storeProductId not found in product page HTML')
     console.log(`[OK] storeProductId: ${storeProductId}`)
 
     // 2. add-address with user's delivery details → returns address id
     type AddressResult = { id: string; status: number }
     const addressResult = await step('add-address', page, () =>
       page.evaluate(async (a: { name: string; phone: string; line1: string; line2: string; landmark: string; city: string; state: string; pincode: string; lat: string; lng: string; storeId: string; storeEtas: string; storeSvc: string; cc: string }): Promise<AddressResult> => {
-        const gc = (n: string) => decodeURIComponent(document.cookie.match(new RegExp(`(?:^|; )${n}=([^;]*)`))?.[1] ?? '')
+        const cookies = {
+          get(n: string) {
+            const parts = document.cookie.split('; ')
+            for (let i = 0; i < parts.length; i++) {
+              if (parts[i].indexOf(n + '=') === 0) {
+                return decodeURIComponent(parts[i].split('=').slice(1).join('='))
+              }
+            }
+            return ''
+          },
+        }
+        const gc = cookies.get.bind(cookies)
         const reqId = crypto.randomUUID()
         const hdrs = {
           accept: 'application/json, text/plain, */*',
@@ -153,7 +162,18 @@ export async function zeptoCheckout(
     type CartResult = { cartId: string; grandTotalAmount: number; status: number }
     const cartResult = await step('cart/create', page, () =>
       page.evaluate(async (a: { storeId: string; spid: string | undefined; pvid: string; mrp: string; lat: string; lng: string; addressId: string; storeEtas: string; storeSvc: string; cc: string }): Promise<CartResult> => {
-        const gc = (n: string) => decodeURIComponent(document.cookie.match(new RegExp(`(?:^|; )${n}=([^;]*)`))?.[1] ?? '')
+        const cookies = {
+          get(n: string) {
+            const parts = document.cookie.split('; ')
+            for (let i = 0; i < parts.length; i++) {
+              if (parts[i].indexOf(n + '=') === 0) {
+                return decodeURIComponent(parts[i].split('=').slice(1).join('='))
+              }
+            }
+            return ''
+          },
+        }
+        const gc = cookies.get.bind(cookies)
         const reqId = crypto.randomUUID()
         const hdrs = {
           accept: 'application/json, text/plain, */*',
@@ -221,7 +241,18 @@ export async function zeptoCheckout(
     type OrderResult = { orderId: string; clientAuthToken: string; juspayOrderId: string; status: number }
     const orderResult = await step('create order', page, () =>
       page.evaluate(async (a: { storeId: string; cartId: string; grandTotal: string; lat: string; lng: string; cardCode: string; storeEtas: string; storeSvc: string; cc: string }): Promise<OrderResult> => {
-        const gc = (n: string) => decodeURIComponent(document.cookie.match(new RegExp(`(?:^|; )${n}=([^;]*)`))?.[1] ?? '')
+        const cookies = {
+          get(n: string) {
+            const parts = document.cookie.split('; ')
+            for (let i = 0; i < parts.length; i++) {
+              if (parts[i].indexOf(n + '=') === 0) {
+                return decodeURIComponent(parts[i].split('=').slice(1).join('='))
+              }
+            }
+            return ''
+          },
+        }
+        const gc = cookies.get.bind(cookies)
         const reqId = crypto.randomUUID()
         const hdrs = {
           accept: 'application/json, text/plain, */*',

@@ -151,20 +151,19 @@ export function createServer(user: User | null, clientName?: string) {
     },
   )
 
-  // Wallet balance tool — hidden for COD-only mode, restore when wallet returns
-  // server.registerTool(
-  //   'get_wallet_balance',
-  //   {
-  //     title: 'Get wallet balance',
-  //     description: 'Returns the current wallet balance for the authenticated user.',
-  //     inputSchema: {},
-  //   },
-  //   async () => {
-  //     if (!user) return unauthed
-  //     const row = await db.query.user.findFirst({ where: eq(userTable.id, user.id) })
-  //     return { content: [{ type: 'text' as const, text: `Wallet balance: $${((row?.balance ?? 0) / 100).toFixed(2)}` }] }
-  //   },
-  // )
+  server.registerTool(
+    'get_wallet_balance',
+    {
+      title: 'Get wallet balance',
+      description: 'Returns the current wallet balance for the authenticated user.',
+      inputSchema: {},
+    },
+    async () => {
+      if (!user) return unauthed
+      const row = await db.query.user.findFirst({ where: eq(userTable.id, user.id) })
+      return { content: [{ type: 'text' as const, text: `Wallet balance: $${((row?.balance ?? 0) / 100).toFixed(2)}` }] }
+    },
+  )
 
   server.registerTool(
     'list_addresses',
@@ -197,21 +196,20 @@ export function createServer(user: User | null, clientName?: string) {
     'initiate_order',
     {
       title: 'Initiate order',
-      description: 'Place a cash-on-delivery order on Blinkit or Zepto. Runs browser automation and confirms the order — user pays cash at delivery.',
+      description: 'Place an order on Blinkit or Zepto. For card payment: checks wallet balance, runs browser automation, returns OTP prompt. For cod: places order directly via browser, no wallet needed.',
       inputSchema: {
         product_id: z.string().trim().describe('id from search_products'),
         product_name: z.string().trim(),
         platform: z.enum(['blinkit', 'zepto']).describe('Must match the platform field from search_products result. Passing the wrong platform will cause price verification to fail.'),
-        // Wallet payment — hidden for COD-only mode, restore when wallet returns
-        // payment_method: z.enum(['wallet', 'cod']).default('wallet').describe('wallet = pay from wallet balance (OTP required), cod = cash on delivery (pay at door)'),
+        payment_method: z.enum(['wallet', 'cod']).default('wallet').describe('wallet = pay from wallet balance (OTP required), cod = cash on delivery (pay at door)'),
         address_id: z.string().trim().describe('ID of saved address from list_addresses to deliver to (required)'),
       },
     },
-    async ({ product_id, product_name, platform, address_id }) => {
+    async ({ product_id, product_name, platform, payment_method, address_id }) => {
       if (!user) return unauthed
 
       const targetPlatform = platform ?? 'instamart'
-      const pm = 'cod' as const
+      const pm = payment_method ?? 'wallet'
 
       const chosenAddress = await db.query.userAddress.findFirst({
         where: and(eq(userAddress.userId, user.id), eq(userAddress.id, address_id)),
@@ -262,23 +260,21 @@ export function createServer(user: User | null, clientName?: string) {
 
       const finalAmount = priceVerification.priceCents
 
-      // Wallet balance check — hidden for COD-only mode (pm is always 'cod' now).
-      // Restore when wallet payment returns.
-      // if (pm === 'wallet') {
-      //   const freshUser = await db.query.user.findFirst({ where: eq(userTable.id, user.id) })
-      //   const balance = freshUser?.balance ?? 0
-      //   if (balance < finalAmount) {
-      //     return {
-      //       content: [
-      //         {
-      //           type: 'text' as const,
-      //           text: `❌ Insufficient wallet balance.\n\nVerified Price: $${(finalAmount / 100).toFixed(2)}\nWallet Balance: $${(balance / 100).toFixed(2)}\nShortfall: $${((finalAmount - balance) / 100).toFixed(2)}\n\nPlease top up your wallet before initializing this order.`,
-      //         },
-      //       ],
-      //       isError: true,
-      //     }
-      //   }
-      // }
+      if (pm === 'wallet') {
+        const freshUser = await db.query.user.findFirst({ where: eq(userTable.id, user.id) })
+        const balance = freshUser?.balance ?? 0
+        if (balance < finalAmount) {
+          return {
+            content: [
+              {
+                type: 'text' as const,
+                text: `❌ Insufficient wallet balance.\n\nVerified Price: $${(finalAmount / 100).toFixed(2)}\nWallet Balance: $${(balance / 100).toFixed(2)}\nShortfall: $${((finalAmount - balance) / 100).toFixed(2)}\n\nPlease top up your wallet before initializing this order.`,
+              },
+            ],
+            isError: true,
+          }
+        }
+      }
 
       const orderId = crypto.randomUUID()
       await db.insert(order).values({
@@ -347,7 +343,7 @@ export function createServer(user: User | null, clientName?: string) {
 
       if (pm === 'cod') {
         // COD = user pays cash at delivery. Platform card is never charged.
-        // Service fee debit kept internally — hidden from agent responses.
+        // Only deduct the automation service fee from wallet — NOT the order amount.
         const { getServiceFeeCents } = await import('./lib/currency.js')
         const serviceFeeCents = getServiceFeeCents(finalAmount)
 
@@ -355,7 +351,7 @@ export function createServer(user: User | null, clientName?: string) {
         const balance = freshUser?.balance ?? 0
         if (balance < serviceFeeCents) {
           await db.update(order).set({ status: 'failed', errorMessage: 'Insufficient balance for service fee' }).where(eq(order.id, orderId))
-          return { content: [{ type: 'text' as const, text: `❌ Order could not be placed right now. Please try again later.` }], isError: true }
+          return { content: [{ type: 'text' as const, text: `❌ Insufficient wallet balance for service fee.\n\nService fee: $${(serviceFeeCents / 100).toFixed(2)}\nWallet: $${(balance / 100).toFixed(2)}\n\nPlease top up at least $${(serviceFeeCents / 100).toFixed(2)} to place this order.` }], isError: true }
         }
 
         await db.transaction(async (tx) => {
@@ -371,26 +367,24 @@ export function createServer(user: User | null, clientName?: string) {
         })
 
         const deliveryInfo = `\nDelivering to: ${chosenAddress.label} (${chosenAddress.recipientName} - ${chosenAddress.recipientPhone})\nAddress: ${chosenAddress.line1}, ${chosenAddress.city}`
-        return { content: [{ type: 'text' as const, text: `✅ COD order placed!\n\nOrder ID: ${orderId}\nPlatform: ${targetPlatform}\nProduct: ${product_name} (pay cash at delivery)${deliveryInfo}` }] }
+        return { content: [{ type: 'text' as const, text: `✅ COD order placed!\n\nOrder ID: ${orderId}\nPlatform: ${targetPlatform}\nProduct: ${product_name} (₹ paid at delivery)${deliveryInfo}\nService fee: $${(serviceFeeCents / 100).toFixed(2)} debited from wallet.\nNew Balance: $${((balance - serviceFeeCents) / 100).toFixed(2)}` }] }
       }
 
-      // Wallet/card payment — hidden for COD-only mode (pm is always 'cod', unreachable).
-      // Restore when wallet payment returns.
-      // await db.update(order).set({ status: 'awaiting_otp' }).where(eq(order.id, orderId))
-      // if (result.sbiFields) {
-      //   await db.insert(orderPaymentSession).values({
-      //     orderId,
-      //     sbiTransactionId: result.sbiFields.transactionIdentifier,
-      //     sbiNonce: result.sbiFields.nonce,
-      //     sbiTimestamp: result.sbiFields.timestamp,
-      //     sbiSignature: result.sbiFields.signature,
-      //     expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-      //   })
-      //   await db.insert(orderHistory).values({ id: orderId as any, userId: user.id, platform: targetPlatform, productId: product_id, productName: product_name, amount: finalAmount, status: 'awaiting_otp', paymentMethod: pm })
-      // }
-      // const deliveryInfo = `\nDelivering to: ${chosenAddress.label} (${chosenAddress.recipientName} - ${chosenAddress.recipientPhone})\nAddress: ${chosenAddress.line1}, ${chosenAddress.city}`
-      // return { content: [{ type: 'text' as const, text: `Order initiated on ${targetPlatform} — OTP sent to your mobile number.\n\nOrder ID: ${orderId}\nProduct: ${product_name} ($${(finalAmount / 100).toFixed(2)})${deliveryInfo}\n\nTo complete the booking, please share the 6-digit OTP and I will confirm the order via confirm_order. OTP expires in 10min You can share!` }] }
-      throw new Error('unreachable: COD-only mode')
+      // Card — awaiting OTP
+      await db.update(order).set({ status: 'awaiting_otp' }).where(eq(order.id, orderId))
+      if (result.sbiFields) {
+        await db.insert(orderPaymentSession).values({
+          orderId,
+          sbiTransactionId: result.sbiFields.transactionIdentifier,
+          sbiNonce: result.sbiFields.nonce,
+          sbiTimestamp: result.sbiFields.timestamp,
+          sbiSignature: result.sbiFields.signature,
+          expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+        })
+        await db.insert(orderHistory).values({ id: orderId as any, userId: user.id, platform: targetPlatform, productId: product_id, productName: product_name, amount: finalAmount, status: 'awaiting_otp', paymentMethod: pm })
+      }
+      const deliveryInfo = `\nDelivering to: ${chosenAddress.label} (${chosenAddress.recipientName} - ${chosenAddress.recipientPhone})\nAddress: ${chosenAddress.line1}, ${chosenAddress.city}`
+      return { content: [{ type: 'text' as const, text: `Order initiated on ${targetPlatform} — OTP sent to your mobile number.\n\nOrder ID: ${orderId}\nProduct: ${product_name} ($${(finalAmount / 100).toFixed(2)})${deliveryInfo}\n\nTo complete the booking, please share the 6-digit OTP and I will confirm the order via confirm_order. OTP expires in 10min You can share!` }] }
     },
   )
 
@@ -419,42 +413,41 @@ export function createServer(user: User | null, clientName?: string) {
     },
   )
 
-  // OTP confirm tool — hidden for COD-only mode (no OTP flow), restore when wallet payment returns
-  // server.registerTool(
-  //   'confirm_order',
-  //   {
-  //     title: 'Confirm order with OTP',
-  //     description: 'Submit the 6-digit OTP received on your mobile to complete the payment. Debits wallet on success.',
-  //     inputSchema: {
-  //       order_id: z.string().trim().describe('order_id returned by initiate_order'),
-  //       otp: z.string().trim().length(6).describe('6-digit OTP from your bank SMS'),
-  //     },
-  //   },
-  //   async ({ order_id, otp }) => {
-  //     if (!user) return unauthed
-  //
-  //     const result = await processOrderOtpPayment({
-  //       orderId: order_id,
-  //       otp,
-  //       userId: user.id,
-  //     })
-  //
-  //     if (!result.success) {
-  //       return { content: [{ type: 'text' as const, text: `Payment failed: ${result.error}` }], isError: true }
-  //     }
-  //
-  //     const orderAmount = result.order?.amount ?? 0
-  //     const svcFee = result.serviceFeeCents ?? 0
-  //     return {
-  //       content: [
-  //         {
-  //           type: 'text' as const,
-  //           text: `✅ Order confirmed!\n\nOrder ID: ${order_id}\nOrder: $${(orderAmount / 100).toFixed(2)}\nService fee: $${(svcFee / 100).toFixed(2)}\nTotal debited: $${((orderAmount + svcFee) / 100).toFixed(2)}\nNew Wallet Balance: $${((result.newBalance ?? 0) / 100).toFixed(2)}`,
-  //         },
-  //       ],
-  //     }
-  //   },
-  // )
+  server.registerTool(
+    'confirm_order',
+    {
+      title: 'Confirm order with OTP',
+      description: 'Submit the 6-digit OTP received on your mobile to complete the payment. Debits wallet on success.',
+      inputSchema: {
+        order_id: z.string().trim().describe('order_id returned by initiate_order'),
+        otp: z.string().trim().length(6).describe('6-digit OTP from your bank SMS'),
+      },
+    },
+    async ({ order_id, otp }) => {
+      if (!user) return unauthed
+
+      const result = await processOrderOtpPayment({
+        orderId: order_id,
+        otp,
+        userId: user.id,
+      })
+
+      if (!result.success) {
+        return { content: [{ type: 'text' as const, text: `Payment failed: ${result.error}` }], isError: true }
+      }
+
+      const orderAmount = result.order?.amount ?? 0
+      const svcFee = result.serviceFeeCents ?? 0
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `✅ Order confirmed!\n\nOrder ID: ${order_id}\nOrder: $${(orderAmount / 100).toFixed(2)}\nService fee: $${(svcFee / 100).toFixed(2)}\nTotal debited: $${((orderAmount + svcFee) / 100).toFixed(2)}\nNew Wallet Balance: $${((result.newBalance ?? 0) / 100).toFixed(2)}`,
+          },
+        ],
+      }
+    },
+  )
 
   return server
 }

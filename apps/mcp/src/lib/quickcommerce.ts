@@ -79,7 +79,7 @@ export async function getItemDetail(
   creditsRemaining?: number
 }> {
   try {
-    const platParam = platform === 'blinkit' ? 'BlinkIt' : 'Swiggy'
+    const platParam = platform === 'blinkit' ? 'BlinkIt' : platform === 'zepto' ? 'Zepto' : 'Swiggy'
     const pinQuery = pincode ? `&pincode=${encodeURIComponent(pincode)}` : ''
     const url = `${BASE}/item?item_id=${encodeURIComponent(itemId)}&lat=${lat}&lon=${lon}&platform=${platParam}${pinQuery}`
 
