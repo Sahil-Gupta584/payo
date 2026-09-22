@@ -127,7 +127,7 @@ function ClaudeCard() {
                 </div>
                 <div className="flex items-center justify-between border-t border-neutral-100 pt-2 text-[11px] text-neutral-500">
                   <span>Debit: <strong className="text-neutral-800">$4.18</strong></span>
-                  <span>Wallet Balance: <strong className="text-neutral-800">$24.50</strong></span>
+                  <span>Total Spent: <strong className="text-neutral-800">$24.50</strong></span>
                 </div>
               </div>
             </div>
@@ -231,7 +231,7 @@ function LandingPage() {
           {[
             { n: '1', title: 'Search', desc: 'Agent calls search_products and picks what you need from Instamart.' },
             { n: '2', title: 'Order', desc: 'Browser automation handles the cart, card entry, and checkout.' },
-            { n: '3', title: 'Confirm', desc: 'You share the OTP. Wallet is debited. Order is placed.' },
+            { n: '3', title: 'Confirm', desc: 'Order is placed. You pay cash at delivery.' },
           ].map(({ n, title, desc }) => (
             <div key={n} className="flex flex-col">
               <div className="mb-3 flex h-7 w-7 items-center justify-center rounded-full border border-foreground/20 text-[13px] font-bold text-foreground">
@@ -265,7 +265,7 @@ function LandingPage() {
         </div>
 
         <p className="shrink-0 text-right font-semibold leading-[1.55] ">
-          Give your agents<br />a wallet.
+          Give your agents<br />the power to shop.
         </p>
       </footer>
     </div>
