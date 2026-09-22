@@ -14,9 +14,16 @@ export type ZeptoCheckoutResult = {
 }
 
 export type ZeptoDeliveryAddress = {
+  recipientName: string
+  recipientPhone: string
+  line1: string
+  line2?: string | null
+  landmark?: string | null
+  city: string
+  state: string
+  pincode: string
   latitude: string
   longitude: string
-  zeptoAddressId: string
 }
 
 const COMPATIBLE_COMPONENTS = [
@@ -77,7 +84,72 @@ export async function zeptoCheckout(
     if (!storeProductId) throw new Error('storeProductId not found in RSC response')
     console.log(`[OK] storeProductId: ${storeProductId}`)
 
-    // 2. cart/create — runs inside browser (needs Zepto cookies)
+    // 2. add-address with user's delivery details → returns address id
+    type AddressResult = { id: string; status: number }
+    const addressResult = await step('add-address', page, () =>
+      page.evaluate(async (a: { name: string; phone: string; line1: string; line2: string; landmark: string; city: string; state: string; pincode: string; lat: string; lng: string; storeId: string; storeEtas: string; storeSvc: string; cc: string }): Promise<AddressResult> => {
+        const gc = (n: string) => decodeURIComponent(document.cookie.match(new RegExp(`(?:^|; )${n}=([^;]*)`))?.[1] ?? '')
+        const reqId = crypto.randomUUID()
+        const hdrs = {
+          accept: 'application/json, text/plain, */*',
+          app_sub_platform: 'WEB', app_version: '16.31.6', appversion: '16.31.6',
+          auth_from_cookie: 'true', auth_revamp_flow: 'v2',
+          'content-type': 'application/json',
+          compatible_components: a.cc,
+          device_id: gc('device_id'), deviceid: gc('device_id'),
+          marketplace_type: 'SUPER_SAVER', platform: 'WEB', tenant: 'ZEPTO',
+          'request-signature': 'gringotts-signature',
+          request_id: reqId, requestid: reqId,
+          session_id: gc('session_id'), sessionid: gc('session_id'),
+          source: 'DIRECT',
+          store_etas: a.storeEtas,
+          store_id: a.storeId, store_ids: a.storeId, storeid: a.storeId,
+          store_serviceability: a.storeSvc,
+          'x-csrf-secret': gc('csrfSecret'),
+          'x-xsrf-token': gc('XSRF-TOKEN'),
+          'x-widget-id': '019f0925-0b55-719a-ac48-75849d7890e4',
+        }
+        const formattedAddress = `${a.line1}${a.line2 ? ', ' + a.line2 : ''}, ${a.city}, ${a.state} ${a.pincode}, India`
+        const res = await fetch('https://bff-gateway.zepto.com/api/v1/user/customer/add-address/', {
+          method: 'POST', credentials: 'include', headers: hdrs,
+          body: JSON.stringify({
+            type: 'OTHER', name: a.name,
+            flatDetails: a.line1, buildingName: a.line2 || a.line1,
+            landmark: a.landmark,
+            latitude: Number(a.lat), longitude: Number(a.lng),
+            googleMapsLocationData: JSON.stringify({
+              formattedAddress,
+              shortAddress: `${a.city}, ${a.state}`,
+              result: {
+                formatted_address: formattedAddress,
+                geometry: { location: { lat: Number(a.lat), lng: Number(a.lng) } },
+                address_components: [
+                  { long_name: a.city, short_name: a.city, types: ['locality', 'political'] },
+                  { long_name: a.state, short_name: a.state, types: ['administrative_area_level_1', 'political'] },
+                  { long_name: 'India', short_name: 'IN', types: ['country', 'political'] },
+                  { long_name: a.pincode, short_name: a.pincode, types: ['postal_code'] },
+                ],
+              },
+            }),
+            contactName: a.name, contactNumber: a.phone,
+            floor: null, buildingType: 'BUILDING_TYPE_SOCIETY', isNewAddressFormat: true,
+          }),
+        })
+        const d = await res.json() as any
+        return { id: d.id, status: res.status }
+      }, {
+        name: addr.recipientName, phone: addr.recipientPhone,
+        line1: addr.line1, line2: addr.line2 || '', landmark: addr.landmark || '',
+        city: addr.city, state: addr.state, pincode: addr.pincode,
+        lat: addr.latitude, lng: addr.longitude,
+        storeId, storeEtas, storeSvc: storeServiceability, cc: COMPATIBLE_COMPONENTS,
+      })
+    )
+
+    if (!addressResult.id) throw new Error(`add-address failed (${addressResult.status}): ${JSON.stringify(addressResult)}`)
+    console.log(`[OK] zeptoAddressId: ${addressResult.id}`)
+
+    // 3. cart/create — runs inside browser (needs Zepto cookies)
     type CartResult = { cartId: string; grandTotalAmount: number; status: number }
     const cartResult = await step('cart/create', page, () =>
       page.evaluate(async (a: { storeId: string; spid: string | undefined; pvid: string; mrp: string; lat: string; lng: string; addressId: string; storeEtas: string; storeSvc: string; cc: string }): Promise<CartResult> => {
@@ -137,7 +209,7 @@ export async function zeptoCheckout(
       }, {
         storeId, spid: storeProductId, pvid: productVariantId,
         mrp: String(mrpPaise), lat: addr.latitude, lng: addr.longitude,
-        addressId: addr.zeptoAddressId, storeEtas, storeSvc: storeServiceability,
+        addressId: addressResult.id, storeEtas, storeSvc: storeServiceability,
         cc: COMPATIBLE_COMPONENTS,
       })
     )

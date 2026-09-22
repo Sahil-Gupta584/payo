@@ -324,9 +324,16 @@ export function createServer(user: User | null, clientName?: string) {
           priceVerification.storeId,
           storeEta,
           {
+            recipientName: chosenAddress.recipientName,
+            recipientPhone: chosenAddress.recipientPhone,
+            line1: chosenAddress.line1,
+            line2: chosenAddress.line2,
+            landmark: chosenAddress.landmark,
+            city: chosenAddress.city,
+            state: chosenAddress.state,
+            pincode: chosenAddress.pincode,
             latitude: String(isNaN(lat) ? 19.1851092 : lat),
             longitude: String(isNaN(lon) ? 72.9949806 : lon),
-            zeptoAddressId: process.env.ZEPTO_ADDRESS_ID ?? '',
           },
         )
       } else {
