@@ -450,48 +450,6 @@ function ApiKeysTab() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Client Setup Instructions */}
-      <Card variant="secondary">
-        <CardHeader>
-          <CardTitle className="text-sm font-semibold">Agent & Client Setup</CardTitle>
-          <CardDescription>
-            Install Payo MCP globally across your agent workflows.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-              OpenCode CLI (Global)
-            </p>
-            <pre className="overflow-x-auto rounded-lg border border-border bg-muted/60 p-3 font-mono text-xs text-foreground leading-relaxed">{`opencode mcp add payo --url ${typeof window !== 'undefined' ? window.location.origin : 'https://payo.so'}/mcp --header "Authorization=Bearer YOUR_API_KEY" --global`}</pre>
-          </div>
-
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-              Claude Code CLI (Global)
-            </p>
-            <pre className="overflow-x-auto rounded-lg border border-border bg-muted/60 p-3 font-mono text-xs text-foreground leading-relaxed">{`claude mcp add --transport http payo ${typeof window !== 'undefined' ? window.location.origin : 'https://payo.so'}/mcp --header "Authorization: Bearer YOUR_API_KEY" --scope user`}</pre>
-          </div>
-
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-              Claude Desktop (<code className="lowercase">claude_desktop_config.json</code>)
-            </p>
-            <pre className="overflow-x-auto rounded-lg border border-border bg-muted/60 p-3 font-mono text-xs text-foreground leading-relaxed">{`{
-  "mcpServers": {
-    "payo": {
-      "type": "http",
-      "url": "${typeof window !== 'undefined' ? window.location.origin : 'https://payo.so'}/mcp",
-      "headers": {
-        "Authorization": "Bearer YOUR_API_KEY"
-      }
-    }
-  }
-}`}</pre>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }
