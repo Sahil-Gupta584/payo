@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Check, Loader2, ShieldCheck, ChevronDown, ArrowUp, Paperclip } from 'lucide-react'
+import { LaunchVideo } from '#/components/launch-video'
 import { cn } from '#/lib/utils'
 
 export const Route = createFileRoute('/')({
@@ -36,7 +37,7 @@ function ClaudeCard() {
       <div className="space-y-4 p-5 sm:p-6">
         {/* User Prompt */}
         <div className="flex justify-end">
-          <div className="max-w-[80%] rounded-2xl rounded-tr-xs bg-[#2F2E2B] px-4 py-2.5 text-[13.5px] font-normal text-white shadow-xs">
+          <div className="w-fit whitespace-nowrap rounded-2xl flex rounded-tr-xs bg-[#2F2E2B] px-4 py-2.5 text-[13.5px] font-normal text-white shadow-xs">
             Order me Pintola crunchy peanut butter from Instamart 🥜
           </div>
         </div>
@@ -176,60 +177,67 @@ function LandingPage() {
         </div>
       </header>
 
-      {/* ── Hero (Centered Vertical Alignment) ── */}
-      <main className="mx-auto flex w-full max-w-[960px] flex-1 flex-col items-center px-6 pt-12 pb-20 text-center">
+      {/* ── Hero: text left, mockup right ── */}
+      <main className="mx-auto flex w-full max-w-[1120px] flex-1 flex-col px-6 pt-12 pb-20">
 
-        {/* Top: Headline & Description */}
-        <div className="flex flex-col items-center max-w-[680px]">
-          <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-foreground/40">
-            Payments for AI agents
-          </p>
+        <div className="flex flex-col items-center gap-10 lg:flex-row lg:items-center lg:gap-14">
+          {/* Left: Headline & Description */}
+          <div className="flex flex-col items-center text-center max-w-[680px] lg:items-start lg:text-left lg:flex-1">
+            <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-foreground/40">
+              Payments for AI agents
+            </p>
 
-          <h1
-            className="mb-4 text-[clamp(44px,5vw,66px)] font-black leading-[1.05] tracking-[-2px] text-foreground"
-            style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
-          >
-            Your agents can<br />
-            finally{' '}
-            <span
-              className="relative inline-block font-black text-blue-600"
-              style={{
-                textShadow:
-                  '0 -1.5px 0 rgba(255, 255, 255, 0.9), 0 -2.5px 0 rgba(147, 197, 253, 0.75), 0 2px 10px rgba(37, 99, 235, 0.25)',
-              }}
+            <h1
+              className="mb-4 text-[clamp(44px,5vw,66px)] font-black leading-[1.05] tracking-[-2px] text-foreground"
+              style={{ fontFamily: "'Bricolage Grotesque', sans-serif" }}
             >
-              buy.
-            </span>
-          </h1>
+              Your agents can<br />
+              finally{' '}
+              <span
+                className="relative inline-block font-black text-blue-600"
+                style={{
+                  textShadow:
+                    '0 -1.5px 0 rgba(255, 255, 255, 0.9), 0 -2.5px 0 rgba(147, 197, 253, 0.75), 0 2px 10px rgba(37, 99, 235, 0.25)',
+                }}
+              >
+                buy.
+              </span>
+            </h1>
 
-          <p className="mb-8 max-w-[500px] text-[17px] leading-relaxed text-foreground/60">
-            Payo gives AI agents a secure way to search, order, and pay online, always within the limits you set.
-          </p>
+            <p className="mb-20 max-w-[500px] text-[17px] leading-relaxed text-foreground/60">
+              Payo gives AI agents a secure way to search, order, and pay online, always within the limits you set.
+            </p>
 
-          {/* CTA */}
-          <div className="flex w-full max-w-[440px] items-center justify-center gap-3">
-            <Link
-              to="/login"
-              className="rounded-[9px] bg-foreground px-8 py-3 text-[15px] font-semibold text-white! no-underline shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-opacity hover:opacity-90"
-            >
-              Start shopping
-            </Link>
+            {/* CTA */}
+            <div className="flex w-full max-w-[440px] items-center justify-center gap-3 lg:justify-start">
+              <Link
+                to="/login"
+                className="rounded-[9px] bg-foreground px-8 py-3 text-[15px] font-semibold text-white! no-underline shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-opacity hover:opacity-90"
+              >
+                Start shopping
+              </Link>
+            </div>
+
+            <p className="mt-3 mb-10 text-[13px] text-foreground/45 lg:mb-0">
+              Built for Claude, OpenCode, and any MCP-compatible agent.
+            </p>
           </div>
 
-          <p className="mt-3 mb-10 text-[13px] text-foreground/45">
-            Built for Claude, OpenCode, and any MCP-compatible agent.
-          </p>
+          {/* Right: Claude Mockup */}
+          <div className="w-full flex justify-center lg:flex-1">
+            <ClaudeCard />
+          </div>
         </div>
 
-        {/* Full Desktop Claude Mockup */}
-        <div className="w-full flex justify-center mb-16">
-          <ClaudeCard />
+        {/* Launch video */}
+        <div className="w-full flex justify-center mt-12 mb-12">
+          <LaunchVideo />
         </div>
 
-        {/* 3 steps below mockup */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-[820px] text-left border-t border-black/8 pt-12">
+        {/* 3 steps */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-[820px] mx-auto text-left border-t border-black/8 pt-12">
           {[
-            { n: '1', title: 'Search', desc: 'Agent calls search_products and picks what you need from Instamart.' },
+            { n: '1', title: 'Search', desc: 'Agent calls search_products and picks what you need from Blinkit or Zepto.' },
             { n: '2', title: 'Order', desc: 'Browser automation handles the cart, card entry, and checkout.' },
             { n: '3', title: 'Confirm', desc: 'Order is placed. You pay cash at delivery.' },
           ].map(({ n, title, desc }) => (

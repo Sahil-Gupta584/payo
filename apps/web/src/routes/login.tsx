@@ -110,6 +110,44 @@ function LoginPage() {
             </form>
           )}
 
+          {!sent && (
+            <>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />
+                or
+                <span className="h-px flex-1 bg-border" />
+              </div>
+              <Button
+                variant="outline"
+                className="w-full"
+                disabled={loading}
+                onClick={() =>
+                  authClient.signIn.social({ provider: 'google', callbackURL: '/dashboard' })
+                }
+              >
+                <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="#4285F4"
+                    d="M23.5 12.3c0-.9-.1-1.5-.3-2.3H12v4.5h6.5c-.1 1.1-.8 2.7-2.4 3.8l-.1.1 3.5 2.7.2.1c2.2-2 3.8-5 3.8-8.9z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.8-2.9c-1 .7-2.4 1.2-4.1 1.2-3.1 0-5.8-2.1-6.8-5l-.1.1-3.6 2.8v.1C3.5 21.4 7.5 24 12 24z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.2 14.4c-.2-.7-.4-1.5-.4-2.4s.1-1.7.4-2.4l-.1-.1-3.5-2.7-.1.1C.5 8.9 0 10.4 0 12s.5 3.1 1.5 4.5l3.7-2.1z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 4.6c1.8 0 3 .8 3.7 1.4l3.3-3.2C17.9 1.1 15.2 0 12 0 7.5 0 3.5 2.6 1.5 6.6l3.7 2.9c1-2.9 3.7-4.9 6.8-4.9z"
+                  />
+                </svg>
+                Continue with Google
+              </Button>
+            </>
+          )}
+
           <p className="text-center text-xs text-muted-foreground">
             Powering AI to shop online
           </p>

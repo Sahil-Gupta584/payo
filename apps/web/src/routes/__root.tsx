@@ -27,7 +27,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'Payo — Powering AI to shop online',
+        title: 'Payo - Powering AI to shop online',
       },
       {
         name: 'theme-color',
@@ -88,21 +88,22 @@ function RootDocument({ children }: { children: React.ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <script
+          defer
+          data-website-id="6ab76165000082b02043"
+          data-domain="www.payo.live"
+          src="https://www.insightly.live/script.js">
+        </script>
+        <script
+          src="https://cdn.databuddy.cc/databuddy.js"
+          data-client-id="2bb4a0dd-d40e-4396-b725-3bf260b3e53c"
+          data-track-web-vitals="true"
+          crossOrigin="anonymous"
+          async
+        ></script>
       </head>
       <body suppressHydrationWarning>
         {children}
-        <TanStackDevtools
-          config={{
-            position: 'bottom-right',
-          }}
-          plugins={[
-            {
-              name: 'Tanstack Router',
-              render: <TanStackRouterDevtoolsPanel />,
-            },
-            TanStackQueryDevtools,
-          ]}
-        />
         <Scripts />
       </body>
     </html>

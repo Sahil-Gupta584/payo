@@ -238,3 +238,7 @@ pre code {
     cursor: pointer;
   }
 }
+
+video{
+  border: 2px solid white;
+}
