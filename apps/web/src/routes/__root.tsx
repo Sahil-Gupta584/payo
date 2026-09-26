@@ -33,6 +33,42 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         name: 'theme-color',
         content: '#1A6FEF',
       },
+      {
+        name: 'description',
+        content: 'Payo gives AI agents a secure way to search, order, and pay online.',
+      },
+      {
+        property: 'og:title',
+        content: 'Payo - Powering AI to shop online',
+      },
+      {
+        property: 'og:description',
+        content: 'Payo gives AI agents a secure way to search, order, and pay online.',
+      },
+      {
+        property: 'og:type',
+        content: 'website',
+      },
+      {
+        property: 'og:image',
+        content: 'https://www.payo.live/og-image.png',
+      },
+      {
+        name: 'twitter:card',
+        content: 'summary_large_image',
+      },
+      {
+        name: 'twitter:title',
+        content: 'Payo - Powering AI to shop online',
+      },
+      {
+        name: 'twitter:description',
+        content: 'Payo gives AI agents a secure way to search, order, and pay online.',
+      },
+      {
+        name: 'twitter:image',
+        content: 'https://www.payo.live/og-image.png',
+      },
     ],
     links: [
       {
