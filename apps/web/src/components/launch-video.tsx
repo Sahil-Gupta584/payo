@@ -12,6 +12,9 @@ export function LaunchVideo() {
   return (
     <div className="w-full">
       <div className=" ">
+        <p className="mt-3 text-2xl mb-2 font-medium text-center">
+          Watch Payo order snacks through Cursor.
+        </p>
         {Player ? (
           <Player
             src="/launch-video.mp4"
@@ -23,17 +26,15 @@ export function LaunchVideo() {
             disableTracking
             disableCookies
             metadata={{ video_title: 'Payo launch' }}
-            className="aspect-video bg-transparent p-0 w-full baborder-x-2 border-y-8 shadow-[0_24px_60px_-12px_rgba(0,0,0,0.25)] border-black overflow-clip rounded-2xl"
+            className="bg-transparent p-0 w-full border-8 border-white shadow-[0_24px_60px_-12px_rgba(0,0,0,0.25)] overflow-clip rounded-2xl"
           />
         ) : (
           <div className="flex aspect-video w-full items-center justify-center bg-neutral-950">
+
             <Loader2 className="h-6 w-6 animate-spin text-white/40" />
           </div>
         )}
       </div>
-      <p className="mt-3 text-[13px] text-foreground/45">
-        Watch Payo order groceries through Cursor.
-      </p>
     </div>
   )
 }
