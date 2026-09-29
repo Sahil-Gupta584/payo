@@ -36,20 +36,3 @@ export const createWalletCheckout = authed
     } as any)
     return { url: (session as any).checkout_url ?? (session as any).url ?? null, sessionId: (session as any).session_id }
   })
-
-// Legacy / dev direct topup (instantly credits balance)
-export const topupWallet = authed
-  .input(z.object({ amount: z.number().int().positive() }))
-  .handler(async ({ input, context }) => {
-    const row = await db.query.user.findFirst({ where: eq(user.id, context.user.id) })
-    const newBalance = (row?.balance ?? 0) + input.amount
-    const [updated] = await db.update(user).set({ balance: newBalance }).where(eq(user.id, context.user.id)).returning()
-    await db.insert(walletHistory).values({
-      userId: context.user.id,
-      amount: input.amount,
-      type: 'credit',
-      description: 'Wallet topup (instant)',
-      balanceAfter: newBalance,
-    })
-    return updated
-  })

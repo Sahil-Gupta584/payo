@@ -12,6 +12,7 @@ import {
   Wallet,
   ShoppingBag,
   MapPin,
+  Plus,
   Clock,
   CheckCircle2,
   AlertCircle,
@@ -31,6 +32,9 @@ function Dashboard() {
   const qc = useQueryClient()
 
   // Queries
+  const { data: balanceData, isLoading: balanceLoading } = useQuery(
+    orpc.wallet.getBalance.queryOptions(),
+  )
   const { data: spentData, isLoading: spentLoading } = useQuery(
     orpc.orders.getSpent.queryOptions(),
   )
@@ -51,6 +55,10 @@ function Dashboard() {
     ? `$${((spentData.spent ?? 0) / 100).toFixed(2)}`
     : '$0.00'
 
+  const formattedBalance = balanceData
+    ? `$${((balanceData.balance ?? 0) / 100).toFixed(2)}`
+    : '$0.00'
+
   return (
     <div className="space-y-8">
       {/* Welcome header */}
@@ -68,20 +76,19 @@ function Dashboard() {
               Manage addresses
             </Link>
           </Button>
-          {/* Wallet top-up — hidden for COD-only mode, restore when wallet returns
+          {/* Top-up button — restored with wallet */}
           <Button size="sm" asChild>
             <Link to="/topup">
               <Plus className="mr-1.5 h-3.5 w-3.5" />
               Top up wallet
             </Link>
           </Button>
-          */}
         </div>
       </div>
 
-      {/* 3 Metric Cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        {/* Wallet Balance Card — hidden for COD-only mode, restore when wallet returns
+      {/* 4 Metric Cards */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {/* 1. Wallet Balance Card */}
         <Card className="transition-all hover:border-border">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
@@ -110,9 +117,8 @@ function Dashboard() {
             </p>
           </CardContent>
         </Card>
-        */}
 
-        {/* 1. Total Spent Card */}
+        {/* 2. Total Spent Card */}
         <Card className="transition-all hover:border-border">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">

@@ -1,5 +1,5 @@
 import { addTodo, listTodos } from './todos'
-import { getWalletBalance, topupWallet, createWalletCheckout, getWalletHistory } from './wallet'
+import { getWalletBalance, createWalletCheckout, getWalletHistory } from './wallet'
 import { listApiKeys, createApiKey, revokeApiKey } from './apiKeys'
 import { joinWaitlist } from './waitlist'
 import { listAddresses, createAddress, updateAddress, deleteAddress } from './addresses'
@@ -13,7 +13,6 @@ export default {
   wallet: {
     getBalance: getWalletBalance,
     getHistory: getWalletHistory,
-    topup: topupWallet,
     createCheckout: createWalletCheckout,
   },
   apiKeys: { list: listApiKeys, create: createApiKey, revoke: revokeApiKey },
