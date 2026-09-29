@@ -306,6 +306,10 @@ export function createServer(user: User | null, clientName?: string) {
       if (targetPlatform === 'blinkit') {
         result = await blinkitCheckout(product_id, card, pm, addressPayload)
       } else if (targetPlatform === 'zepto') {
+        if (pm === 'cod') {
+          await db.update(order).set({ status: 'failed', errorMessage: 'COD not available on Zepto' }).where(eq(order.id, orderId))
+          return { content: [{ type: 'text' as const, text: `❌ COD is not available on Zepto. Please use wallet payment, or choose Blinkit for cash on delivery.` }], isError: true }
+        }
         const { zeptoCheckout } = await import('./lib/solari/zepto.js')
         if (!priceVerification.storeId || !priceVerification.mrpInr) {
           return { content: [{ type: 'text' as const, text: `❌ Could not resolve Zepto store details for "${product_name}". Please try again.` }], isError: true }
